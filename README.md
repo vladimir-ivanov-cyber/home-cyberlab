@@ -121,6 +121,64 @@ sudo nmap -p 445 --script smb2-security-mode 192.168.100.20
 
 **Ergebnis:**
 - SMB 3.1.1 erkannt.
+
+- ## Credential Harvesting – LLMNR/NBT-NS Poisoning mit Responder
+
+**Datum:** 12.10.2026  
+**Status:** Erfolgreich abgeschlossen
+
+### Ziel
+
+Simulation eines Credential-Harvesting-Angriffs in einer isolierten Laborumgebung und Überprüfung, ob Security Onion die zugehörige Netzwerkaktivität erkennt.
+
+### Laborumgebung
+
+| System | IP-Adresse | Rolle |
+|---|---|---|
+| Kali Linux | `192.168.100.50` | Angreifer / Responder |
+| Windows Server (DC01) | `192.168.100.20` | Zielsystem |
+| Security Onion | `192.168.100.10` | Netzwerküberwachung / SIEM |
+
+### Durchführung
+
+1. Testkonto `CYBERLAB\labtest` auf dem Windows Server vorbereitet.
+2. Responder auf Kali Linux im aktiven Poisoning-Modus gestartet.
+3. LLMNR-, NBT-NS- und mDNS-Anfragen des Windows Servers durch Responder beantwortet.
+4. Vom Windows Server eine SMB-Verbindung zum Kali-System mit dem Testkonto ausgelöst:
+
+   ```powershell
+   net use \\192.168.100.50\labshare /user:CYBERLAB\labtest *
+   ```
+
+5. Die Verbindung wurde mit `System error 5 – Access is denied` abgelehnt. Trotzdem wurde eine NTLM-Authentifizierung übertragen.
+6. Responder zeichnete die NTLMv2-SSP-Authentifizierungsantwort des Testkontos auf.
+7. Die Ereignisse wurden in Security Onion Hunt untersucht.
+8. Responder nach Abschluss der Simulation gestoppt.
+
+### Ergebnisse
+
+**Responder:**
+- Poisoning-Antworten für LLMNR, NBT-NS und mDNS nachgewiesen.
+- NTLMv2-SSP-Authentifizierungsantwort für `CYBERLAB\labtest` erfasst.
+- Kein Klartextpasswort ermittelt.
+
+**Security Onion:**
+- `zeek.ntlm` – NTLM-Authentifizierungsverkehr protokolliert.
+- `zeek.conn` – Netzwerkverbindung protokolliert.
+- Zwei `suricata.alert`-Ereignisse nachgewiesen:
+  - `ET INFO NTLM Session Setup Request - Negotiate`
+  - `ET INFO NTLM Session Setup Request - Auth`
+- Verbindung: `192.168.100.20` → `192.168.100.50`, TCP-Port `445`.
+- Zeitpunkt: 12.10.2026, ca. 21:13 Uhr.
+- Suricata-Einstufung: **Informational**.
+
+### Fazit
+
+Die Credential-Harvesting-Simulation war erfolgreich. Responder konnte eine NTLMv2-Authentifizierungsantwort des Testkontos erfassen.
+
+Security Onion protokollierte den NTLM-Verkehr mit Zeek und erzeugte zwei Suricata-Signaturalarme. Diese Alarme weisen NTLM-Kommunikation nach, identifizieren aber für sich allein keinen Credential-Harvesting-Angriff. Der Zusammenhang wurde durch die Responder-Ausgabe bestätigt.
+
+**Erkenntnis:** Auch bei einer abgelehnten SMB-Verbindung können NTLM-Authentifizierungsdaten übertragen werden. Netzwerküberwachung kann diese Kommunikation sichtbar machen.
 - `Message signing enabled and required`.
 - Security Onion erfasste zwei neue `zeek.conn`-Ereignisse um 18:47:45 Uhr.
 
