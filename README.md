@@ -16,7 +16,9 @@
 
 **Noch offen:** Kontrollierte Credential-Harvesting-Simulation, Nachweis und Untersuchung der Ergebnisse.
 
-**Wichtig:** Keine weiteren SMB-Scans und keine Wiederholung der LLMNR-Erkennung.# Home Cyberlab – Projektstatus
+**Wichtig:** Keine weiteren SMB-Scans und keine Wiederholung der LLMNR-Erkennung.
+
+# Home Cyberlab – Projektstatus
 
 **Stand:** 12.10.2026  
 **Ziel:** Aufbau eines isolierten Cybersecurity-Labors für Angriffssimulationen, Angriffserkennung und Incident Response.
