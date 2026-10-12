@@ -1,4 +1,22 @@
-# Home Cyberlab – Projektstatus
+## Verbindliche Arbeitsregeln – Home Cyberlab
+
+**Maßgebliche Anleitung:** Tutoring(10).docx
+
+- Ausschließlich die sechs praktischen Übungen des Tutorings bearbeiten.
+- Keine zusätzlichen Tests oder Themenwechsel ohne ausdrückliche Zustimmung.
+- Bereits bestätigte Ergebnisse nicht erneut prüfen, sofern kein konkreter Fehler vorliegt.
+- Pro Antwort nur einen nächsten Arbeitsschritt.
+- Jeden Schritt mit der passenden Tutoring-Übung verknüpfen.
+- Fehlende Voraussetzungen zuerst benennen, statt eigenmächtig andere Aufgaben zu beginnen.
+- Abgeschlossene Ergebnisse und offene Punkte auf GitHub dokumentieren.
+
+**Aktueller Haltepunkt:** Übung 1 – Credential Harvesting mit Responder.
+
+**Bereits nachgewiesen:** Responder erkennt LLMNR-/NBT-NS-Anfragen des Windows Servers; Security Onion protokolliert LLMNR-Verkehr einschließlich des Hostnamens `soc-lab`.
+
+**Noch offen:** Kontrollierte Credential-Harvesting-Simulation, Nachweis und Untersuchung der Ergebnisse.
+
+**Wichtig:** Keine weiteren SMB-Scans und keine Wiederholung der LLMNR-Erkennung.# Home Cyberlab – Projektstatus
 
 **Stand:** 12.10.2026  
 **Ziel:** Aufbau eines isolierten Cybersecurity-Labors für Angriffssimulationen, Angriffserkennung und Incident Response.
