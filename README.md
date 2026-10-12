@@ -66,3 +66,43 @@ Ergebnis: Erfolgreich. Zeek-Ereignisse und Suricata-Alerts für Kali → Windows
 ## 6. Nächster Schritt
 
 Weitere Angriffssimulationen im isolierten Labor durchführen und die Erkennung in Security Onion kontrollieren. Wazuh-Probleme nur dann gezielt bearbeiten, wenn sie für den jeweiligen Test relevant sind.
+
+### Test 5 – SMB-Freigabenprüfung
+
+**Datum:** 12.10.2026
+
+**Ziel:** Windows Server `192.168.100.20`
+
+**Werkzeuge:** Metasploit, Nmap, Security Onion
+
+**Befehle:**
+```bash
+sudo nmap -p 445 --script smb-enum-shares 192.168.100.20
+```
+
+**Ergebnis:**
+- Metasploit meldete `STATUS_ACCESS_DENIED`.
+- Nmap konnte keine SMB-Freigaben auflisten.
+- Security Onion zeichnete die Verbindungen mit Zeek auf.
+- Ein untersuchtes Ereignis zeigte `RSTR` (Verbindung vom Server zurückgesetzt).
+
+**Bewertung:** Netzwerküberwachung erfolgreich; keine erfolgreiche Freigabenauflistung nachgewiesen.
+
+### Test 6 – SMB-Signing-Prüfung
+
+**Datum:** 12.10.2026
+
+**Ziel:** Windows Server `192.168.100.20`
+
+**Befehl:**
+```bash
+sudo nmap -p 445 --script smb2-security-mode 192.168.100.20
+```
+
+**Ergebnis:**
+- SMB 3.1.1 erkannt.
+- `Message signing enabled and required`.
+- Security Onion erfasste zwei neue `zeek.conn`-Ereignisse um 18:47:45 Uhr.
+
+**Bewertung:** SMB-Signing ist verpflichtend aktiviert. Der Testverkehr wurde erfolgreich überwacht.
+
