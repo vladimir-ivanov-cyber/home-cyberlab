@@ -1,10 +1,10 @@
 # Übung 1 – Credential Harvesting mit Responder und Auswertung in Security Onion und Wazuh
 
-**Home Cyberlab · Dokumentationsstand: 15.10.2026 · Ersatzfassung ausschließlich für Übung 1**
+**Home Cyberlab · Credential Harvesting · Belege vom 15.10.2026**
 
-Dieses eigenständige Paket ist zum Ersetzen der bisherigen Übung-1-Dokumentation vorgesehen. Bestehende Projektdateien und andere Übungen wurden nicht verändert. Es dokumentiert vorhandene Beobachtungen; es wurden keine neuen Labortests ausgeführt.
+Diese Untersuchung dokumentiert den Responder-Capture sowie die zugehörigen Netzwerk- und Windows-Beobachtungen. Die Ergebnisse werden anhand der unten eingebundenen Screenshots bewertet.
 
-**Belegstand:** Acht tatsächlich vorhandene Screenshots sind eingebunden: Responder, zwei Security-Onion-Hunt-Ansichten, die Wazuh-Übersicht und die vier zuletzt angeforderten Wazuh-Detailbilder. Die Bildbelege sind vollständig aufgenommen. Die eindeutige technische Korrelation der Beobachtungen bleibt begrenzt und wird in Abschnitt 6 erläutert.
+**Belegstand:** Acht tatsächlich vorhandene Screenshots sind eingebunden: Responder, zwei Security-Onion-Hunt-Ansichten, die Wazuh-Übersicht und vier Wazuh-Detailbilder. Die Bildbelege sind vollständig aufgenommen. Die eindeutige technische Korrelation der Beobachtungen bleibt begrenzt und wird in Abschnitt 6 erläutert.
 
 ## 1. Ziel und Laborbezug
 
@@ -143,12 +143,12 @@ Auch der Zeitbezug ist ungeklärt: Die Dashboard-Zeitzone ist im Screenshot nich
 
 ## 7. Ergebnis
 
-Responder dokumentiert eine erfasste NTLMv2-Response für `CYBERLAB\Administrator` und gemeldete Poisoning-Antworten. Security Onion dokumentiert Zeek-Verkehr von `192.168.100.20` zu `192.168.100.50`. Die Wazuh-Belege dokumentieren eine erfolgreiche NTLM-V2-Netzwerkanmeldung desselben Kontonamens auf `DC01.cyberlab.local`, die Wazuh mit Regel `92657` auf Level `6` bewertet. Alle drei Beobachtungen sind durch vorhandene Screenshots belegt. Eine durchgehende Beweiskette zwischen ihnen ist damit noch nicht hergestellt.
+Responder dokumentiert eine erfasste NTLMv2-Response für `CYBERLAB\Administrator` und gemeldete Poisoning-Antworten. Security Onion dokumentiert Zeek-Verkehr von `192.168.100.20` zu `192.168.100.50`. Die Wazuh-Belege dokumentieren eine erfolgreiche NTLM-V2-Netzwerkanmeldung desselben Kontonamens auf `DC01.cyberlab.local`, die Wazuh mit Regel `92657` auf Level `6` bewertet. Alle drei Beobachtungen sind durch Screenshots belegt. Eine durchgehende Beweiskette zwischen ihnen ist damit noch nicht hergestellt.
 
-Für eine eindeutige technische Korrelation wären gemeinsame Zeit- und Verbindungsmerkmale sowie die Zuordnung des IPv6-Clients erforderlich. Das ist eine Grenze der vorhandenen Ergebnisse, kein fehlender Screenshot im vorliegenden Dokumentationspaket. Es wurden keine Ersatzbilder oder nicht vorhandenen Bildpfade eingefügt.
+Für eine eindeutige technische Korrelation wären gemeinsame Zeit- und Verbindungsmerkmale sowie die Zuordnung des IPv6-Clients erforderlich. Die vorhandenen Belege reichen für diese Zuordnung nicht aus.
 
-## 8. Dateien und Verwendung als Ersatzfassung
+## 8. Belegverzeichnis
 
-Das ZIP enthält diese `README.md`, den Ordner `screenshots/` mit acht unveränderten Originalbildern unter beschreibenden Dateinamen und `BELEGE.csv` mit Originalnamen und SHA-256-Prüfsummen. Alle Markdown-Bildverweise sind relativ und funktionieren nach dem gemeinsamen Entpacken.
+Die acht Screenshots liegen unverändert im Ordner `screenshots/`. Das [Belegverzeichnis](BELEGE.csv) enthält die Originaldateinamen und SHA-256-Prüfsummen.
 
-Diese README kann an die Stelle der bisherigen Übung-1-Datei übernommen werden, wenn ihr Screenshot-Ordner daneben liegt. Sie ersetzt ausschließlich Übung 1; allgemeine Laborübersichten und andere Übungen sind kein Bestandteil dieses Ersatzpakets. Ein tatsächlicher Austausch in einem entfernten Repository oder in den synchronisierten ChatGPT-Projektdateien wurde nicht vorgenommen.
+[Zur Projektübersicht](../README.md)
