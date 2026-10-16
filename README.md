@@ -1,168 +1,80 @@
+# Home Cyberlab
 
+**Dokumentationsstand: 16.10.2026**
 
-# Home Cyberlab – Projektstatus
+Dieses Projekt dokumentiert ein virtuelles Cybersecurity-Labor für Netzwerkbeobachtung, Windows-Ereignisanalyse und die Untersuchung simulierter Angriffe. Der Aufbau orientiert sich am Tutoring. Ergebnisse werden nach ihrem tatsächlichen Belegstand bewertet: Ein sichtbarer Netzwerkfluss ist noch keine spezifische Angriffserkennung, und eine Regelzuordnung bestätigt keine ausgeführte Angriffstechnik.
 
-**Stand:** 12.10.2026  
-**Ziel:** Aufbau eines isolierten Cybersecurity-Labors für Angriffssimulationen, Angriffserkennung und Incident Response.
+## Dokumentation
 
-## 1. Laborumgebung
+- [Übung 1: Credential Harvesting mit Responder](uebung-1/README.md) – aktuelle Fassung mit acht Screenshots, einschließlich Wazuh-Auswertung.
+- [Abgleich mit dem Tutoring](docs/TUTORING-ABGLEICH.md) – Anforderungen, bisheriger Stand und nächste Schritte.
 
-| System | IP-Adresse | Aufgabe |
-|---|---|---|
-| Kali Linux | 192.168.100.50 | Angriffssimulation |
-| Windows Server / DC01 | 192.168.100.20 | Zielsystem, Active Directory |
-| Security Onion 3.1.0 | 192.168.100.10 | Netzwerküberwachung und SIEM |
-| Ubuntu / Wazuh | 192.168.100.30 | Wazuh-Manager |
+## Laborumgebung
 
-Virtualisierung: Oracle VirtualBox.
+| System | Adresse | Aufgabe |
+| --- | --- | --- |
+| Kali Linux | `192.168.100.50` | Testsystem und Responder |
+| Windows Server / DC01 | `192.168.100.20` | Windows-Zielsystem, Active Directory, Wazuh-Agent |
+| Security Onion 3.1.0 | `192.168.100.10` | Hunt-Oberfläche und Netzwerkauswertung mit Zeek/Suricata |
+| Ubuntu / Wazuh | `192.168.100.30` | Separater Wazuh-Manager und Dashboard |
 
-## 2. Erfolgreich nachgewiesen
+Virtualisierung: **Oracle VirtualBox**. Domäne in den Übung-1-Belegen: `CYBERLAB`, Computername `DC01.cyberlab.local`.
 
-- Kali erreicht Windows Server über das Labornetzwerk.
-- Nmap erkennt auf Windows Server die Ports 53, 88, 135, 139, 389 und 445.
-- Nmap erkennt mehrere unterstützte SMB-Versionen.
-- Metasploit-Modul `auxiliary/scanner/smb/smb_version` wurde erfolgreich ausgeführt.
-- SMB 3.1.1 wurde als bevorzugter Dialekt erkannt.
-- Security Onion erfasst den Datenverkehr zwischen Kali und Windows Server.
-- Zeek-Verbindungsereignisse sind in Security Onion Hunt sichtbar.
-- Suricata erzeugt Alerts zum Scanverkehr.
-- Windows-Ereignisse einschließlich Sysmon und PowerShell wurden bereits in Security Onion nachgewiesen.
+Das Tutoring sieht das Netz `192.168.100.0/24` vor. Die gezeigten Adressen passen dazu; Netzmaske, Adaptermodus, Routing, Sensoranbindung und tatsächliche Isolation sind damit noch nicht vollständig belegt. Die Webadresse von Security Onion beschreibt keine separate Monitoring-Schnittstelle.
 
-## 3. Angriffssimulationen – 12.10.2026
+## Stand der sechs Tutoring-Übungen
 
-**Test 1: Nmap-Port- und Diensterkennung**
+| Übung | Thema | Dokumentierter Stand |
+| --- | --- | --- |
+| 1 | Credential Harvesting | Responder-Capture, Zeek-Verkehr und Wazuh-Anmeldung belegt; eindeutige Korrelation offen. [Belege und Bewertung](uebung-1/README.md) |
+| 2 | Exploitation und Detection | Kein abgeschlossener Durchlauf mit Ausnutzung eines Dienstes und zugehöriger Netzwerk-/Endpoint-Auswertung belegt |
+| 3 | Lateral Movement | Kein abgeschlossener Durchlauf mit zugehöriger Untersuchung belegt |
+| 4 | Malware Detection | Kein abgeschlossener Test samt Alarm- und Reaktionsnachweis belegt |
+| 5 | Baseline und eigene Erkennungsregeln | Keine dokumentierte Normalaktivitäts-Baseline samt geprüfter eigener Regel belegt |
+| 6 | Incident Response | Kein vollständiger Durchlauf aus Eindämmung, Untersuchung, Bereinigung und Nachprüfung belegt |
 
-Ergebnis: Erfolgreich. Windows Server wurde erkannt; mehrere Active-Directory- und SMB-Dienste sind erreichbar.
+„Nicht belegt“ bezeichnet den Dokumentationsstand und bedeutet nicht automatisch, dass eine Funktion nicht installiert ist oder nicht funktioniert. Die Übungsnummerierung folgt ausschließlich dem Tutoring.
 
-**Test 2: SMB-Protokollerkennung mit Nmap**
+## Aktuelles Ergebnis von Übung 1
 
-Ergebnis: Erfolgreich. SMB-Dialekte wurden aufgelistet.
+Responder zeigt einen **NTLMv2-SSP-Capture für `CYBERLAB\Administrator`** sowie gemeldete mDNS-, NBT-NS- und LLMNR-Poisoning-Antworten. Security Onion zeigt `zeek.conn`- und `zeek.dns`-Einträge von `.20` zu `.50`. Wazuh zeigt **Event 4624**, **Regel 92657**, **Level 6**, **NTLM V2** und **LogonType 3**.
 
-**Test 3: SMB-Versionserkennung mit Metasploit**
+**Der Hash beziehungsweise die NTLMv2-Response ist nur in Responder und nicht in Wazuh sichtbar. Die Wazuh-Quell-IP `192.168.100.20` erlaubt keine eindeutige Zuordnung zum Responder-Angriff.** Außerdem unterscheiden sich die sichtbaren Zeiten; der Responder-Capture nennt einen IPv6-Client. Pass-the-Hash, Relay, Kennwortwiederherstellung oder RDP sind dadurch nicht nachgewiesen.
 
-Ergebnis: Erfolgreich. SMB 3.1.1 wurde erkannt.
+Die aktuelle [Übung-1-Dokumentation](uebung-1/README.md) ersetzt die bisherige Credential-Harvesting-Beschreibung in der Haupt-README. Die ältere Beschreibung vom 12.10. mit `CYBERLAB\labtest`, einem `net use`-Befehl und älteren NTLM-/Suricata-Angaben gehört zu einem anderen beschriebenen Durchlauf. Ihre Aussagen werden nicht als Belege für den Administrator-Capture vom 15.10. übernommen. Der vorherige Text bleibt in der Git-Historie erhalten, sofern diese Ersatzfassung im bestehenden Repository committed wird.
 
-**Test 4: Überprüfung in Security Onion**
+## Überwachung und offene Funktionen
 
-Ergebnis: Erfolgreich. Zeek-Ereignisse und Suricata-Alerts für Kali → Windows Server, Port 445, wurden gefunden.
+| Bereich | Bisheriger Stand | Noch zu klären |
+| --- | --- | --- |
+| Netzwerk | Aktuelle Zeek-Belege zu Übung 1 vorhanden | Sichtbarkeit aller relevanten Protokolle und konkrete Alarmzuordnung |
+| Windows-Logs in Security Onion | Winlogs, Sysmon und PowerShell im bisherigen Projektstand als sichtbar dokumentiert | Aktueller Erfassungsweg, Kanäle und Vollständigkeit |
+| Wazuh-Windows-Agent | Agent `001` / `windows-server` liefert das belegte 4624-Ereignis | Aktuellen Verbindungsstatus separat prüfen; frühere Erreichbarkeitsprobleme nicht pauschal als fortbestehend annehmen |
+| Datei-FIM | Frühere Änderung an `C:\fim_test\test.txt` mit Regel 550 dokumentiert | Keine vollständige FIM-Abdeckung daraus ableiten |
+| Registry-FIM | Im bisherigen Projektstand ungeklärt | Gezielte Teständerung und zugehöriges Ereignis dokumentieren |
+| Rootcheck | Im bisherigen Projektstand aktiv | Ein positiver Erkennungsnachweis fehlt |
+| Schwachstellenerkennung und YARA | Nicht abschließend geprüft | Konfiguration, Test und Ergebnis getrennt nachweisen |
+| Wazuh → Security Onion | Weiterleitung nicht nachgewiesen | Transportweg und dasselbe Testereignis auf beiden Seiten belegen |
+| OpenVAS / Greenbone | Im zugänglichen Projektstand kein Scan belegt | Eigenständigen Scan- und Remediation-Durchlauf planen |
 
-**Bewertung:** Der grundlegende Angriff-Erkennung-Workflow funktioniert.
+## Nächste Schritte
 
-## 4. Offene Punkte
+1. Aktuelle Dokumentation und Bildlinks prüfen. Für Übung 1 ist der Abschlussstatus **durchgeführt, Korrelation teilweise offen** angemessen.
+2. Vor weiteren Tests Netzisolation, Zeitzonen und Uhrensynchronisation sowie die beteiligten Logquellen festhalten.
+3. Falls Übung 1 vollständig korreliert werden soll: einen klar abgegrenzten Durchlauf mit Testkonto, Start-/Endzeit, auslösender Aktion und den zugehörigen Netzwerk-/Hostereignissen dokumentieren. Bereits funktionierende Komponenten dafür nicht pauschal neu konfigurieren.
+4. Danach die weiteren Tutoring-Übungen einzeln bearbeiten; pro Übung Ergebnisse, Erkennung, Grenzen und Reaktion dokumentieren. OpenVAS, YARA und zentrale Wazuh-Weiterleitung bleiben eigene Arbeitspakete.
 
-- Wazuh: Agent-Verbindungen und Erreichbarkeit erneut prüfen.
-- Wazuh Registry-FIM (`syscheck`): Problem noch nicht geklärt.
-- Rootcheck: Scans funktionieren grundsätzlich; ein positiver Rootkit-Erkennungstest fehlt.
-- Schwachstellenerkennung: noch nicht abschließend geprüft.
-- YARA-Integration: noch nicht abschließend geprüft.
-- Weiterleitung von Wazuh-Alerts an Security Onion: noch nicht nachgewiesen.
+## Arbeitsweise
 
-## 5. Arbeitsregeln
+- Tests nur auf den eigenen freigegebenen Laborzielen durchführen.
+- Vor Änderungen den Zustand und bei Bedarf einen VM-Snapshot festhalten.
+- Pro Untersuchung eine nachvollziehbare Änderung oder Testhandlung ausführen.
+- Funktionierende Komponenten nur bei konkretem Anlass verändern.
+- Befehl, Zeitpunkt mit Zeitzone, Konto, Quell-/Zielsystem, Ergebnis, Logquelle und Beleg gemeinsam erfassen.
+- Beobachtungen, Regelhinweise und bestätigte Angriffsergebnisse getrennt beschreiben.
 
-1. Bereits erfolgreich getestete Funktionen nicht ohne Anlass erneut konfigurieren.
-2. Pro Schritt nur eine Änderung durchführen.
-3. Vor Änderungen den bisherigen Zustand dokumentieren.
-4. Fehler gezielt beheben, ohne funktionierende Komponenten unnötig zu verändern.
-5. Jeden Angriffstest mit Datum, Befehl, Ergebnis und Erkennung dokumentieren.
+## Quellen und Nachweisgrenzen
 
-## 6. Nächster Schritt
+Grundlagen sind das bereitgestellte `Tutoring.docx`, die Screenshots der bisherigen GitHub-README, die vorhandenen Projektunterlagen vom 12.10.2026 sowie die acht Bildbelege in Übung 1. Die Datei- und Registry-FIM-Prüfungen sind keine Nachweise für Responder-Erkennung.
 
-Weitere Angriffssimulationen im isolierten Labor durchführen und die Erkennung in Security Onion kontrollieren. Wazuh-Probleme nur dann gezielt bearbeiten, wenn sie für den jeweiligen Test relevant sind.
-
-### Test 5 – SMB-Freigabenprüfung
-
-**Datum:** 12.10.2026
-
-**Ziel:** Windows Server `192.168.100.20`
-
-**Werkzeuge:** Metasploit, Nmap, Security Onion
-
-**Befehle:**
-```bash
-sudo nmap -p 445 --script smb-enum-shares 192.168.100.20
-```
-
-**Ergebnis:**
-- Metasploit meldete `STATUS_ACCESS_DENIED`.
-- Nmap konnte keine SMB-Freigaben auflisten.
-- Security Onion zeichnete die Verbindungen mit Zeek auf.
-- Ein untersuchtes Ereignis zeigte `RSTR` (Verbindung vom Server zurückgesetzt).
-
-**Bewertung:** Netzwerküberwachung erfolgreich; keine erfolgreiche Freigabenauflistung nachgewiesen.
-
-### Test 6 – SMB-Signing-Prüfung
-
-**Datum:** 12.10.2026
-
-**Ziel:** Windows Server `192.168.100.20`
-
-**Befehl:**
-```bash
-sudo nmap -p 445 --script smb2-security-mode 192.168.100.20
-```
-
-**Ergebnis:**
-- SMB 3.1.1 erkannt.
-
-- ## Credential Harvesting – LLMNR/NBT-NS Poisoning mit Responder
-
-**Datum:** 12.10.2026  
-**Status:** Erfolgreich abgeschlossen
-
-### Ziel
-
-Simulation eines Credential-Harvesting-Angriffs in einer isolierten Laborumgebung und Überprüfung, ob Security Onion die zugehörige Netzwerkaktivität erkennt.
-
-### Laborumgebung
-
-| System | IP-Adresse | Rolle |
-|---|---|---|
-| Kali Linux | `192.168.100.50` | Angreifer / Responder |
-| Windows Server (DC01) | `192.168.100.20` | Zielsystem |
-| Security Onion | `192.168.100.10` | Netzwerküberwachung / SIEM |
-
-### Durchführung
-
-1. Testkonto `CYBERLAB\labtest` auf dem Windows Server vorbereitet.
-2. Responder auf Kali Linux im aktiven Poisoning-Modus gestartet.
-3. LLMNR-, NBT-NS- und mDNS-Anfragen des Windows Servers durch Responder beantwortet.
-4. Vom Windows Server eine SMB-Verbindung zum Kali-System mit dem Testkonto ausgelöst:
-
-   ```powershell
-   net use \\192.168.100.50\labshare /user:CYBERLAB\labtest *
-   ```
-
-5. Die Verbindung wurde mit `System error 5 – Access is denied` abgelehnt. Trotzdem wurde eine NTLM-Authentifizierung übertragen.
-6. Responder zeichnete die NTLMv2-SSP-Authentifizierungsantwort des Testkontos auf.
-7. Die Ereignisse wurden in Security Onion Hunt untersucht.
-8. Responder nach Abschluss der Simulation gestoppt.
-
-### Ergebnisse
-
-**Responder:**
-- Poisoning-Antworten für LLMNR, NBT-NS und mDNS nachgewiesen.
-- NTLMv2-SSP-Authentifizierungsantwort für `CYBERLAB\labtest` erfasst.
-- Kein Klartextpasswort ermittelt.
-
-**Security Onion:**
-- `zeek.ntlm` – NTLM-Authentifizierungsverkehr protokolliert.
-- `zeek.conn` – Netzwerkverbindung protokolliert.
-- Zwei `suricata.alert`-Ereignisse nachgewiesen:
-  - `ET INFO NTLM Session Setup Request - Negotiate`
-  - `ET INFO NTLM Session Setup Request - Auth`
-- Verbindung: `192.168.100.20` → `192.168.100.50`, TCP-Port `445`.
-- Zeitpunkt: 12.10.2026, ca. 21:13 Uhr.
-- Suricata-Einstufung: **Informational**.
-
-### Fazit
-
-Die Credential-Harvesting-Simulation war erfolgreich. Responder konnte eine NTLMv2-Authentifizierungsantwort des Testkontos erfassen.
-
-Security Onion protokollierte den NTLM-Verkehr mit Zeek und erzeugte zwei Suricata-Signaturalarme. Diese Alarme weisen NTLM-Kommunikation nach, identifizieren aber für sich allein keinen Credential-Harvesting-Angriff. Der Zusammenhang wurde durch die Responder-Ausgabe bestätigt.
-
-**Erkenntnis:** Auch bei einer abgelehnten SMB-Verbindung können NTLM-Authentifizierungsdaten übertragen werden. Netzwerküberwachung kann diese Kommunikation sichtbar machen.
-- `Message signing enabled and required`.
-- Security Onion erfasste zwei neue `zeek.conn`-Ereignisse um 18:47:45 Uhr.
-
-**Bewertung:** SMB-Signing ist verpflichtend aktiviert. Der Testverkehr wurde erfolgreich überwacht.
-
+Der [Tutoring-Abgleich](docs/TUTORING-ABGLEICH.md) trennt Lernziele von technisch zu prüfenden oder missverständlich formulierten Aussagen. Diese Überarbeitung ändert die Dokumentation, nicht die laufenden Labor-VMs.
