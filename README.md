@@ -1,8 +1,10 @@
 # Home Cyberlab
 
-**Dokumentationsstand: 16.10.2026**
+Dieses Projekt bildet eine kleine Unternehmensumgebung in einem virtuellen Labor nach. Nach dem Architekturkonzept des Tutorings arbeiten die Systeme in einem isolierten Netzwerk im Hypervisor. Verbindungen zum Heimnetz oder Internet sollen nur gezielt ermöglicht werden.
 
-Dieses Projekt dokumentiert ein virtuelles Cybersecurity-Labor für Netzwerkbeobachtung, Windows-Ereignisanalyse und die Untersuchung simulierter Angriffe. Der Aufbau orientiert sich am Tutoring. Ergebnisse werden nach ihrem tatsächlichen Belegstand bewertet: Ein sichtbarer Netzwerkfluss ist noch keine spezifische Angriffserkennung, und eine Regelzuordnung bestätigt keine ausgeführte Angriffstechnik.
+Der vorgesehene Ablauf: **Kali Linux** simuliert Angriffe auf den **Windows Server**. Dieser erzeugt Protokolle und Sicherheitsereignisse. **Security Onion** sammelt und analysiert Netzwerkdaten sowie weitergeleitete Logs als SIEM. **Wazuh** ergänzt die Überwachung durch die Erfassung und Auswertung sicherheitsrelevanter Aktivitäten auf dem Windows-System.
+
+Ziel ist, Angriffsfläche, Protokollierung, Erkennung und Untersuchung zusammenzuführen. Security Onion soll als zentrale Untersuchungsoberfläche dienen; dafür ist auch die Weiterleitung der Wazuh-Alerts vorgesehen. Welche Teile dieses Konzepts bereits nachgewiesen sind und welche noch offen bleiben, ist im folgenden Projektstatus dokumentiert.
 
 ## Dokumentation
 
