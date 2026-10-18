@@ -225,3 +225,40 @@ Nmap identifizierte den erreichbaren Dienst. Ein selbst erstelltes Metasploit-Mo
 Suricata erkannte verdächtigen curl-Verkehr, während Wazuh eine separate PowerShell-Dateierstellung protokollierte. Nicht jede erkannte Aktivität konnte eindeutig dem erfolgreichen Schwachstellentest zugeordnet werden.
 
 Die Übung verdeutlichte insbesondere, dass ein Netzwerkereignis, ein Sicherheitsalarm und der tatsächliche Nachweis einer erfolgreichen Ausnutzung unterschiedliche Aussagen darstellen.
+
+## 12. Screenshot-Belege
+
+Die folgenden Screenshots dokumentieren die Durchführung und Untersuchung von Übung 2.
+
+Die Belege umfassen:
+
+1. **Nmap-Reconnaissance:** Identifizierung des HTTP-Testdienstes auf TCP-Port 8080.
+2. **HTTP-Schwachstellentest:** Erfolgreiche Anfrage an `/admin/proof` ohne Authentifizierung.
+3. **Metasploit:** Erfolgreiche Ausführung des eigenen Auxiliary-Moduls.
+4. **Security Onion:** Netzwerkereignisse zwischen Kali Linux und DC01.
+5. **Suricata:** Untersuchung des HTTP-Alarms mit Signatur-ID 2034567.
+6. **Wazuh:** Endpoint-Analyse des Sysmon-Dateiereignisses und der Wazuh-Regel 92213.
+7. **Kibana:** Analyse des HTTP-Requests `/admin/proof` und der Antwort `200 OK`.
+
+Die Screenshots werden nachfolgend mit den im Repository gespeicherten Dateinamen verlinkt.
+
+### Screenshot 1 – Nmap-Reconnaissance
+![Nmap-Reconnaissance](<Екранна снимка 2026-10-18 154525.png>)
+
+### Screenshot 2 – HTTP-Schwachstellentest
+![HTTP-Schwachstellentest](<Екранна снимка 2026-10-18 155247.png>)
+
+### Screenshot 3 – Metasploit
+![Metasploit-Exploitation](<Екранна снимка 2026-10-18 155544.png>)
+
+### Screenshot 4 – Security Onion
+![Security Onion Hunt](<Екранна снимка 2026-10-18 172543.png>)
+
+### Screenshot 5 – Suricata
+![Suricata-Alert](<Екранна снимка 2026-10-18 172741.png>)
+
+### Screenshot 6 – Wazuh
+![Wazuh Endpoint-Analyse](<Екранна снимка 2026-10-18 174345.png>)
+
+### Screenshot 7 – Kibana
+![Kibana HTTP-Analyse](<Екранна снимка 2026-10-18 180032.png>)
