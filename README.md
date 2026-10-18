@@ -46,7 +46,17 @@ Responder erfasste eine **NTLMv2-SSP-Authentifizierungsantwort für `CYBERLAB\Ad
 
 ### 2. Exploitation und Detection
 
-<!-- Nach Durchführung ergänzen: Datum, Ziel, Werkzeuge und Befehle, Ablauf, Ergebnis, Netzwerk- und Endpoint-Belege, Bewertung. -->
+[Dokumentation mit Screenshot-Belegen öffnen](uebung-2/README.md)
+
+Im isolierten Cyberlab wurde auf dem Windows Server **DC01 (192.168.100.20)** ein bewusst verwundbarer HTTP-Testdienst auf **TCP-Port 8080** bereitgestellt. Die Anwendung enthielt eine absichtlich fehlende Authentifizierungsprüfung am Endpunkt `/admin/proof`.
+
+**Nmap** bestätigte den erreichbaren Dienst. Anschließend demonstrierte ein selbst erstelltes **Metasploit-Auxiliary-Modul** die unautorisierte Ausführung einer festgelegten Testaktion. Die Ausgabe `Unauthorized action confirmed` bestätigte die erfolgreiche Interaktion mit der verwundbaren Anwendung.
+
+**Security Onion und Kibana** zeigten die Netzwerkkommunikation zwischen Kali Linux (`192.168.100.50`) und DC01. Zeek protokollierte `GET /admin/proof` mit dem HTTP-Status `200 OK`. Suricata erzeugte für einen separaten curl-Aufruf den Alarm **ET HUNTING curl User-Agent to Dotted Quad (SID 2034567)**.
+
+**Wazuh** lieferte die Endpoint-Perspektive. Ein Sysmon-Event 11 löste Wazuh-Regel **92213 (Level 15)** für eine temporäre PowerShell-Datei aus. Ein direkter Zusammenhang dieses Alarms mit dem erfolgreichen Metasploit-Test wurde nicht nachgewiesen.
+
+Die Schwachstelle wurde bewusst für diese Laborübung erstellt. Es handelt sich weder um eine bekannte Windows-CVE noch um eine Remote-Code-Execution-Schwachstelle.
 
 ### 3. Lateral Movement
 
