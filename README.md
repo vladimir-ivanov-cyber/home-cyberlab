@@ -83,6 +83,16 @@ Die vertiefte Untersuchung der Event-Details direkt in der Wazuh EDR-Konsole lie
 ![Wazuh Details Top](wazuh-details-top.png)
 ![Wazuh Details Bottom](wazuh-details-bottom.png)
 
+#### E. Fazit und Gegenmaßnahmen (Conclusion & Mitigation)
+Die erfolgreiche Durchführung und Analyse dieser Angriffssimulation liefert wichtige Erkenntnisse über die Risiken von Legacy-Protokollen in Windows-Umgebungen und die Effizienz einer kombinierten SIEM/EDR-Überwachung.
+
+**Gegenmaßnahmen zur Absicherung der Infrastruktur:**
+1. **Deaktivierung von LLMNR & NBT-NS:** Die primäre Ursache für diesen Angriff ist das automatische Zurückfallen von Windows auf unsichere Broadcast-Protokolle. Diese müssen zwingend über die Gruppenrichtlinien (GPO) im gesamten Active Directory deaktiviert werden (*"Turn off Multicast Name Resolution"*).
+2. **Einführung von SMB Signing:** Um Relay-Angriffe mit den erbeuteten Hashes zu verhindern, sollte SMB Signing für alle Server und Clients im Netzwerk verpflichtend aktiviert werden.
+3. **Einsatz von Windows Defender Credential Guard:** Aktivierung von Credential Guard, um das Auslesen und Missbrauchen von Authentifizierungsdaten aus dem LSASS-Prozess durch Virtualisierungsbasierte Sicherheit (VBS) effektiv zu blockieren.
+
+**Analytisches Fazit:**
+Durch die nahtlose Integration von **Security Onion** (Netzwerk-Sichtbarkeit über Zeek) und **Wazuh EDR** (Host-Sichtbarkeit über NTLM/Operational Auditing) konnte der Vorfall lückenlos korreliert werden. Während die Netzwerksensoren den Moment des Spoofings dokumentierten, lieferte die EDR-Plattform den präzisen forensischen Nachweis (Event ID 8001), welcher Prozess betroffen war und dass der Host manipuliert wurde. Dies beweist die kritische Notwendigkeit eines ganzheitlichen "Defense-in-Depth"-Ansatzes in modernen Security Operations Centers (SOC).
 
 
 ### 2. Exploitation und Detection
