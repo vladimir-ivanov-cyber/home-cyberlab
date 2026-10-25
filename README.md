@@ -106,7 +106,7 @@ Durch die nahtlose Integration von **Security Onion** (Netzwerk-Sichtbarkeit üb
   3. **Privilege Escalation:** Nach dem Öffnen der Meterpreter-Sitzung auf Port `4444` wurde die Post-Exploitation-Technik `getsystem` ausgeführt. Das System wurde erfolgreich über die Technik **Named Pipe Impersonation (MITRE ATT&CK T1134.001)** kompromittiert, wodurch die höchsten Systemrechte (`NT AUTHORITY\SYSTEM`) erlangt wurden.
 
 ![NMAP Scan Results](kali-nmap.png)
-![Meterpreter Access and Privilege Escalation](kali-meterpreter.png
+![Meterpreter Access and Privilege Escalation](kali-meterpreter.png)
 
 #### B. Blue Team Analyse (SIEM-Untersuchung & Patterns)
 * **Plattform:** Security Onion (Zentrales SIEM – `192.168.100.10`) & Suricata IDS Engine.
