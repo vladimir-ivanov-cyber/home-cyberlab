@@ -145,15 +145,15 @@ Die Tiefenanalyse des Vorfalls in der SIEM-Umgebung lieferte wichtige forensisch
 * **Tools:** Metasploit Framework, Windows Native Tools (`powershell.exe`, `winrs`).
 * **Ablauf:**
   1. **Initial Access & C2-Simulation:** Über die bestehende Meterpreter-Sitzung wurde eine interaktive Windows-Shell geöffnet. Da PowerShell Empire in der isolierten Offline-Laborumgebung aufgrund harter externer Paketabhängigkeiten zu GitHub blockiert wurde, wurden die exakten Verhaltensmuster einer modernen C2-Plattform manuell simuliert.
-  2. **Obfuscation (Verschleierung):** Es wurde ein stark verschleierter, Base64-codierter PowerShell-Befehl ausgeführt, welcher im Hintergrund versucht, verdeckt Schadcode auszuführen (`powershell.exe -nop -w hidden -encodedCommand cABvAHc...`). Dies entspricht der echten Arbeitsweise von PowerShell Empire agents (MITRE ATT&CK T1059.001).
-  3. **Lateral Movement (Horizontale Bewegung):** Zur Simulation eines Netzwerksprunges в локалната лабораторна среда wurde ein Loopback-Angriff durchgeführt. Mittels des administrativen Windows-Protokolls **WinRM (Windows Remote Management)** wurde eine authentifizierte Remote-Sitzung auf den lokalen Host selbst initiiert (`winrs -r:localhost cmd.exe /c "whoami"`), welche erfolgreich als `cyberlab\administrator` ausgeführt wurde.
+  2. **Obfuscation (Verschleierung):** Es wurde ein stark verschleierter, Base64-codierter PowerShell-Befehl ausgeführt, welcher im Hintergrund versucht, verdeckt Schadcode auszuführen (`powershell.exe -nop -w hidden -encodedCommand cABvAHc...`). Dies entspricht der echten Arbeitsweise von PowerShell Empire Agents (MITRE ATT&CK T1059.001).
+  3. **Lateral Movement (Horizontale Bewegung):** Zur Simulation eines Netzwerksprunges in der lokalen Laborumgebung wurde ein Loopback-Angriff durchgeführt. Mittels des administrativen Windows-Protokolls **WinRM (Windows Remote Management)** wurde eine authentifizierte Remote-Sitzung auf den lokalen Host selbst initiiert (`winrs -r:localhost cmd.exe /c "whoami"`), welche erfolgreich unter dem Kontext `cyberlab\administrator` ausgeführt wurde.
 
 ![Windows Server Lateral Movement Execution](kali-empire-simulation.png)
 
 #### B. Blue Team Analyse (SIEM-Zentralisierung & Forensische Funde)
 * **Plattform:** Security Onion (Hunt-Konsole) & Windows-Host-Logs (Sysmon).
 * **Forensische Erkennung im SIEM:**
-  Die Sicherheitsüberwachung hat die bösartige Aktivität erfolgreich erfasst и централизирала в лог базата данни:
+  Die Sicherheitsüberwachung hat die bösartige Aktivität erfolgreich erfasst und in der zentralen Log-Datenbank konsolidiert:
   * **C2-Erkennung (Sysmon Event ID 1 - Prozesserschaffung):** In der Hunt-Konsole wurden die Alerts für `powershell.exe` unter dem Benutzerkontext `Administrator` isoliert. 
   * **Deep Artifact Analysis:** Die Tiefenanalyse des expandierten JSON-Logs lieferte den ultimativen forensischen Nachweis. Das Feld `process.command_line` dokumentiert lückenlos den vollständigen verschleierten Aufruf inklusive der verdächtigen Parameter `-nop`, `-w hidden` und `-encodedCommand` zusammen mit dem Base64-Payload-String.
 
@@ -161,9 +161,10 @@ Die Tiefenanalyse des Vorfalls in der SIEM-Umgebung lieferte wichtige forensisch
 ![Security Onion Deep JSON Forensic Details](so-powershell-json.png)
 
 #### C. Fazit und Gegenmaßnahmen (Mitigation)
-1. **Restriktion von PowerShell via GPO:** PowerShell sollte über die Gruppenrichtlinien streng reglementiert werden. Die Aktivierung des *Constrained Language Mode* verhindert das Ausführen von komplexen, unvollständigen oder verschleierten Base64-Inhalten im Speicher (Memory).
+1. **Restriktion von PowerShell via GPO:** PowerShell sollte über die Gruppenrichtlinien streng reglementiert werden. Die Aktivierung des *Constrained Language Mode* verhindert das Ausführen von komplexen, unvollständigen oder verschleierten Base64-Inhalten im Arbeitsspeicher.
 2. **Erweiterte Protokollierung (Script Block Logging):** Aktivierung von *PowerShell Script Block Logging (Event ID 4104)*. Dies ermöglicht es dem SOC-Team, den deobfuskieren (entschlüsselten) Code im Klartext zu lesen, selbst wenn der Angreifer Base64-Verschleierung nutzt.
-3. **Absicherung von WinRM (Windows Remote Management):** Der WinRM-Dienst sollte auf allen Arbeitsstationen und Servern deaktiviert werden, sofern er nicht explizit für Remote-Management benötigt wird. Falls erforderlich, sollte der Zugriff über Host-Firewalls ausschließlich auf dedizierte Admin-Systeme beschränkt werden.
+3. **Absicherung von WinRM (Windows Remote Management):** Der WinRM-Dienst sollte auf allen Arbeitsstationen und Servern deaktiviert werden, sofern er nicht explizit für Remote-Management benötigt wird. Falls erforderlich, sollte der Zugriff über Host-Firewalls ausschließlich auf dedizierte Administrations-Systeme beschränkt werden.
+
 
 
 ### 4. Malware Detection
