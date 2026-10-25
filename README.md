@@ -38,6 +38,36 @@ Ein Netzwerkereignis bestätigt zunächst beobachtete Kommunikation. Eine Regelm
 
 ### 1. Credential Harvesting mit Responder
 
+### 1. Credential Harvesting mit Responder
+
+#### A. Red Team Ausführung (Angriff)
+* **Ziel:** Abfangen von NetNTLMv2-Hashes im lokalen Netzwerk mittels LLMNR/NBT-NS Spoofing.
+* **Tool:** Responder (ausgeführt auf Kali Linux – `192.168.100.50`).
+* **Ablauf:** 
+  1. Die lokale Responder-Datenbank (`Responder.db`) und alte Logdateien wurden vollständig bereinigt, um einen Live-Angriff zu simulieren.
+  2. Responder wurde im Listening-Modus gestartet, um auf Broadcast-Anfragen im Netzwerk zu warten (`sudo responder -I eth0 -w`).
+  3. Auf dem Windows Server (`192.168.100.20`) wurde eine fehlerhafte SMB-Netzwerkfreigabe-Anfrage an einen nicht existierenden Server eingegeben (`\\nov-test-server\portfolio`).
+* **Ergebnis:** Responder hat die LLMNR-Anfrage erfolgreich vergiftet (Poisoning), dem Opfer vorgetäuscht, der gesuchte Server zu sein, und den vollständigen NetNTLMv2-Authentifizierungshash für den Benutzer `CYBERLAB\Administrator` im Terminal abgefangen.
+
+[Hier Screenshot vom Kali Linux Terminal mit dem orangefarbenen NTLMv2-Hash einfügen]
+[Hier Screenshot vom Windows Server mit der Netzwerk-Fehlermeldung einfügen]
+
+#### B. Blue Team Analyse (Erkennung im SIEM)
+* **Plattform:** Security Onion (Zentrales SIEM – `192.168.100.10`) integriert mit Wazuh EDR & Sysmon logs.
+* **Netzwerk-Erkennung (Zeek):** In der Security Onion *Hunt*-Konsole wurden die Metadaten-Events von `zeek.dns` identifiziert. Diese dokumentieren den genauen Zeitpunkt, zu dem der Windows Server die Broadcast-Anfrage für `nov-test-server` in das Netzwerk geschickt hat.
+* **Endpoint-Erkennung (Sysmon/Wazuh):** Die Analyse des Windows Event Forwarding über das Sysmon-Modul lieferte den entscheidenden Beweis (Smoking Gun) direkt in der SIEM-Umgebung (`winlog.winlog`).
+
+[Hier Screenshot von der Security Onion Hunt-Übersicht mit den Zeek- und Winlog-Events einfügen]
+
+#### C. Untersuchung der Artefakte (Investigation Findings)
+Bei der Detailanalyse des expandierten Sysmon-Logs wurden folgende kritische Indikatoren dokumentiert:
+* **`winlog.channel`:** `Microsoft-Windows-Sysmon/Operational` (Bestätigt die Tiefenüberwachung des Endpunkts).
+* **`winlog.event_data.Image`:** `C:\WINDOWS\system32\svchost.exe` (Der legitime Windows-Prozess, welcher die DNS-Anfrage ausführte).
+* **`winlog.event_data.QueryName`:** `nov-test-server` (Verbindet den Host-Log direkt mit dem simulierten Angriff).
+* **`winlog.event_data.QueryResults`:** `192.168.100.50` (Das finale Untersuchungsergebnis: Das Feld zeigt explizit, dass die Namensauflösung des Windows-Servers auf die IP-Adresse des Angreifers manipuliert wurde. Dies beweist den Erfolg des LLMNR-Poisoning-Angriffs).
+
+[Hier Ihren letzten Screenshot mit dem expandierten JSON-Log und der sichtbaren Kali-IP einfügen]
+
 
 ### 2. Exploitation und Detection
 
