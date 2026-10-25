@@ -120,19 +120,22 @@ Durch die nahtlose Integration von **Security Onion** (Netzwerk-Sichtbarkeit üb
 
 ![Security Onion Hunt Metasploit Alerts](so-metasploit-overview.png)
 
-#### C. Untersuchung der erweiterten JSON-Artefakte
-Die Tiefenanalyse des expandierten Suricata-Alert-Logs lieferte folgende forensische Details:
-* **`event.dataset`:** `suricata.alert` (IDS-generierter Alarm).
-* **`rule.name`:** `ET MALWARE Possible Metasploit Payload Common Construct Bind_API (from server)`.
-* **`rule.metadata.tag`:** `Metasploit` (Die Engine hat das Framework direkt anhand des Netzwerk-Traffics signiert).
-* **`message`:** Enthält den rohen hexadezimalen Datenstrom der C2-Kommunikation, welcher den permanenten Heartbeat-Tunnel zwischen dem infizierten Windows-Host und Kali Linux beweist.
+#### C. Untersuchung der erweiterten JSON-Artefakte & EDR-Blindspot
+Die Tiefenanalyse des Vorfalls in der SIEM-Umgebung lieferte wichtige forensische Erkenntnisse über das Verhalten von Endpoint-Detection-Systemen bei aggressiven Angriffen:
+
+* **Endpoint Perspective (Wazuh EDR):** Während der Privilegieneskalation mittels *Named Pipe Impersonation* über das Metasploit-Framework stürzte der Wazuh-Agent auf dem Windows Server ab (Status: *Disconnected*). Dies simuliert ein realistisches Szenario, bei dem hochentwickelte Schadsoftware oder Kernel-Exploits EDR-Systeme gezielt umgehen oder deren Log-Übertragung blockieren.
+* **SIEM-Kompensation (Suricata/Zeek):** Da der Host-Agent stumm war, übernahm die Netzwerkinfrastruktur von Security Onion die lückenlose Erkennung. Folgende tiefe JSON-Felder wurden in den `suricata.alert`-Metadaten analysiert:
+  * **`rule.name`:** `ET MALWARE Possible Metasploit Payload Common Construct Bind_API (from server)` (Eindeutige Identifizierung des C2-Frameworks).
+  * **`rule.metadata.tag`:** `Metasploit` (Direkte Signierung des Angriffs-Traffics).
+  * **`event.severity_label`:** `Critical` (Automatische Einstufung der Bedrohung auf höchster Ebene).
 
 ![Suricata Deep JSON Forensic Details](o-json-detail.png)
 
-#### D. Fazit und Gegenmaßnahmen (Mitigation)
-1. **Port-Security und Firewalls:** Blockieren von ausgehendem Verkehr auf unüblichen Ports (wie `4444`). Es sollte ein striktes Egress-Filtering implementiert werden, bei dem nur explizit erlaubte Ports (z. B. 80, 443, 53) das interne Netzwerk verlassen dürfen.
-2. **Application Whitelisting / AppLocker:** Unsignierte ausführbare Dateien (wie `backdoor.exe`) dürfen in einer Enterprise-Umgebung gar nicht erst gestartet werden. Durch die Implementierung von AppLocker oder Windows Defender Application Control (WDAC) wird die Ausführung von Binärdateien außerhalb von geschützten Systempfaden blockiert.
-3. **Erkennung von Named Pipe Impersonation:** Überwachung von System-Audits auf privilegierte Token-Manipulationen. Sysmon sollte so konfiguriert werden, dass die Erstellung von Named Pipes (Event ID 17 und 18) lückenlos geloggt und eskaliert wird.
+#### D. Fazit und Gegenmaßnahmen (Conclusion & Mitigation)
+1. **Network Egress Filtering:** Die Schadsoftware konnte nur deshalb eine Reverse-Shell aufbauen, weil ausgehender Datenverkehr auf Port `4444` erlaubt war. Firewalls müssen so konfiguriert werden, dass unübliche ausgehende Ports strikt blockiert werden.
+2. **Einführung von AppLocker / WDAC:** Unsignierte Binärdateien wie `backdoor.exe` dürfen in einer Enterprise-Infrastruktur nicht ausgeführt werden. Richtlinien zur Anwendungssteuerung hätten den Angriff im Keim erstickt.
+3. **Defense-in-Depth Notwendigkeit:** Dieses Szenario beweist, dass man sich niemals nur auf ein EDR-System verlassen darf. Fällt der Host-Schutz aus (Blind Spot), bleibt das Netzwerk-SIEM (Security Onion) die wichtigste Verteidigungslinie, um Command-and-Control-Verkehr (C2) zu erkennen.
+
 
 
 ### 3. Lateral Movement
