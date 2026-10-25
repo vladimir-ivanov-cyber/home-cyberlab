@@ -97,8 +97,6 @@ Durch die nahtlose Integration von **Security Onion** (Netzwerk-Sichtbarkeit üb
 
 ### 2. Exploitation und Detection
 
-### 2. Exploitation und Detection
-
 #### A. Red Team Ausführung (Aufklärung, Angriff und Privilegieneskalation)
 * **Ziel:** Identifikation offener Dienste auf dem Windows Server, erfolgreiche Ausnutzung einer Schwachstelle zur Etablierung einer Reverse-Shell und anschließende vollständige Übernahme des Systems.
 * **Tools:** NMAP & Metasploit Framework (Kali Linux – `192.168.100.50`).
@@ -107,8 +105,8 @@ Durch die nahtlose Integration von **Security Onion** (Netzwerk-Sichtbarkeit üb
   2. **Exploitation:** Da es sich um ein gehärtetes Windows Server 2025 System handelt, wurde ein maßgeschneiderter Payload mit `msfvenom` generiert (`windows/x64/meterpreter/reverse_tcp`) und auf dem Host ausgeführt, um eine interaktive Command-and-Control (C2) Verbindung zu simulieren.
   3. **Privilege Escalation:** Nach dem Öffnen der Meterpreter-Sitzung auf Port `4444` wurde die Post-Exploitation-Technik `getsystem` ausgeführt. Das System wurde erfolgreich über die Technik **Named Pipe Impersonation (MITRE ATT&CK T1134.001)** kompromittiert, wodurch die höchsten Systemrechte (`NT AUTHORITY\SYSTEM`) erlangt wurden.
 
-[Hier das erste Screenshot vom Kali Linux Terminal mit dem erfolgreichen NMAP-Scan einfügen]
-[Hier das zweite Screenshot vom Kali Linux Terminal mit der geöffneten Meterpreter-Session und dem Befehl getsystem einfügen]
+![NMAP Scan Results](kali-nmap.png)
+![Meterpreter Access and Privilege Escalation](kali-meterpreter.png
 
 #### B. Blue Team Analyse (SIEM-Untersuchung & Patterns)
 * **Plattform:** Security Onion (Zentrales SIEM – `192.168.100.10`) & Suricata IDS Engine.
@@ -120,7 +118,7 @@ Durch die nahtlose Integration von **Security Onion** (Netzwerk-Sichtbarkeit üb
     1. `ET MALWARE Possible Metasploit Payload Common Construct Bind_API (from server)` (Klassifiziert als **Critical / High Severity**).
     2. `ET HUNTING PE EXE Download over raw TCP` (Erkennung des binären Dateitransfers über das Netzwerk).
 
-[Hier das Screenshot von der allgemeinen Security Onion Übersicht mit den 3 gefundenen Meterpreter-Events einfügen]
+![Security Onion Hunt Metasploit Alerts](so-metasploit-overview.png)
 
 #### C. Untersuchung der erweiterten JSON-Artefakte
 Die Tiefenanalyse des expandierten Suricata-Alert-Logs lieferte folgende forensische Details:
@@ -129,7 +127,7 @@ Die Tiefenanalyse des expandierten Suricata-Alert-Logs lieferte folgende forensi
 * **`rule.metadata.tag`:** `Metasploit` (Die Engine hat das Framework direkt anhand des Netzwerk-Traffics signiert).
 * **`message`:** Enthält den rohen hexadezimalen Datenstrom der C2-Kommunikation, welcher den permanenten Heartbeat-Tunnel zwischen dem infizierten Windows-Host und Kali Linux beweist.
 
-[Hier einen der detaillierten Screenshots mit den expandierten JSON-Feldern (z. B. rule.name / Metasploit-Tag) einfügen]
+![Suricata Deep JSON Forensic Details](so-json-detail.png)
 
 #### D. Fazit und Gegenmaßnahmen (Mitigation)
 1. **Port-Security und Firewalls:** Blockieren von ausgehendem Verkehr auf unüblichen Ports (wie `4444`). Es sollte ein striktes Egress-Filtering implementiert werden, bei dem nur explizit erlaubte Ports (z. B. 80, 443, 53) das interne Netzwerk verlassen dürfen.
