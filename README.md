@@ -127,7 +127,7 @@ Die Tiefenanalyse des expandierten Suricata-Alert-Logs lieferte folgende forensi
 * **`rule.metadata.tag`:** `Metasploit` (Die Engine hat das Framework direkt anhand des Netzwerk-Traffics signiert).
 * **`message`:** Enthält den rohen hexadezimalen Datenstrom der C2-Kommunikation, welcher den permanenten Heartbeat-Tunnel zwischen dem infizierten Windows-Host und Kali Linux beweist.
 
-![Suricata Deep JSON Forensic Details](so-json-detail.png)
+![Suricata Deep JSON Forensic Details](o-json-detail.png)
 
 #### D. Fazit und Gegenmaßnahmen (Mitigation)
 1. **Port-Security und Firewalls:** Blockieren von ausgehendem Verkehr auf unüblichen Ports (wie `4444`). Es sollte ein striktes Egress-Filtering implementiert werden, bei dem nur explizit erlaubte Ports (z. B. 80, 443, 53) das interne Netzwerk verlassen dürfen.
