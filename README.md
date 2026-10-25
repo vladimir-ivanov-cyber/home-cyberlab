@@ -36,7 +36,6 @@ Ein Netzwerkereignis bestätigt zunächst beobachtete Kommunikation. Eine Regelm
 
 ## Angriffssimulationen
 
-### 1. Credential Harvesting mit Responder
 
 ### 1. Credential Harvesting mit Responder
 
