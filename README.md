@@ -97,6 +97,44 @@ Durch die nahtlose Integration von **Security Onion** (Netzwerk-Sichtbarkeit üb
 
 ### 2. Exploitation und Detection
 
+### 2. Exploitation und Detection
+
+#### A. Red Team Ausführung (Aufklärung, Angriff und Privilegieneskalation)
+* **Ziel:** Identifikation offener Dienste auf dem Windows Server, erfolgreiche Ausnutzung einer Schwachstelle zur Etablierung einer Reverse-Shell und anschließende vollständige Übernahme des Systems.
+* **Tools:** NMAP & Metasploit Framework (Kali Linux – `192.168.100.50`).
+* **Ablauf:**
+  1. **Reconnaissance:** Ein aggressiver Portscan mit NMAP wurde durchgeführt, um aktive Dienste zu identifizieren (`sudo nmap -sV -sC -O -p 135,139,445,3389 192.168.100.20 -v`). Der SMB-Dienst (Port 445) wurde als aktiv bestätigt.
+  2. **Exploitation:** Da es sich um ein gehärtetes Windows Server 2025 System handelt, wurde ein maßgeschneiderter Payload mit `msfvenom` generiert (`windows/x64/meterpreter/reverse_tcp`) und auf dem Host ausgeführt, um eine interaktive Command-and-Control (C2) Verbindung zu simulieren.
+  3. **Privilege Escalation:** Nach dem Öffnen der Meterpreter-Sitzung auf Port `4444` wurde die Post-Exploitation-Technik `getsystem` ausgeführt. Das System wurde erfolgreich über die Technik **Named Pipe Impersonation (MITRE ATT&CK T1134.001)** kompromittiert, wodurch die höchsten Systemrechte (`NT AUTHORITY\SYSTEM`) erlangt wurden.
+
+[Hier das erste Screenshot vom Kali Linux Terminal mit dem erfolgreichen NMAP-Scan einfügen]
+[Hier das zweite Screenshot vom Kali Linux Terminal mit der geöffneten Meterpreter-Session und dem Befehl getsystem einfügen]
+
+#### B. Blue Team Analyse (SIEM-Untersuchung & Patterns)
+* **Plattform:** Security Onion (Zentrales SIEM – `192.168.100.10`) & Suricata IDS Engine.
+* **Untersuchungsergebnisse (Hunt-Konsole):**
+  Gemäß den Anforderungen der Analyse wurden die genauen mрежови мodelle (Network Patterns) im SIEM isoliert. Folgende Antworten wurden forensisch dokumentiert:
+  * **What IPs:** Die Verbindung wurde eindeutig zwischen der Angreifer-IP `192.168.100.50` (Kali Linux) und der Opfer-IP `192.168.100.20` (Windows Server) korreliert.
+  * **What Ports:** Der Datenstrom etablierte sich über den verdächtigen Port `4444` (Source Port des C2-Handlers) zu einem dynamischen Destination Port (`52890`) auf dem Windows-Host.
+  * **What Patterns:** Die IDS-Engine (Suricata) schlug sofort mit kritischen Alarmen an. Es wurden Signaturen detektiert, die spezifisch für Schadsoftware-Verhalten sind:
+    1. `ET MALWARE Possible Metasploit Payload Common Construct Bind_API (from server)` (Klassifiziert als **Critical / High Severity**).
+    2. `ET HUNTING PE EXE Download over raw TCP` (Erkennung des binären Dateitransfers über das Netzwerk).
+
+[Hier das Screenshot von der allgemeinen Security Onion Übersicht mit den 3 gefundenen Meterpreter-Events einfügen]
+
+#### C. Untersuchung der erweiterten JSON-Artefakte
+Die Tiefenanalyse des expandierten Suricata-Alert-Logs lieferte folgende forensische Details:
+* **`event.dataset`:** `suricata.alert` (IDS-generierter Alarm).
+* **`rule.name`:** `ET MALWARE Possible Metasploit Payload Common Construct Bind_API (from server)`.
+* **`rule.metadata.tag`:** `Metasploit` (Die Engine hat das Framework direkt anhand des Netzwerk-Traffics signiert).
+* **`message`:** Enthält den rohen hexadezimalen Datenstrom der C2-Kommunikation, welcher den permanenten Heartbeat-Tunnel zwischen dem infizierten Windows-Host und Kali Linux beweist.
+
+[Hier einen der detaillierten Screenshots mit den expandierten JSON-Feldern (z. B. rule.name / Metasploit-Tag) einfügen]
+
+#### D. Fazit und Gegenmaßnahmen (Mitigation)
+1. **Port-Security und Firewalls:** Blockieren von ausgehendem Verkehr auf unüblichen Ports (wie `4444`). Es sollte ein striktes Egress-Filtering implementiert werden, bei dem nur explizit erlaubte Ports (z. B. 80, 443, 53) das interne Netzwerk verlassen dürfen.
+2. **Application Whitelisting / AppLocker:** Unsignierte ausführbare Dateien (wie `backdoor.exe`) dürfen in einer Enterprise-Umgebung gar nicht erst gestartet werden. Durch die Implementierung von AppLocker oder Windows Defender Application Control (WDAC) wird die Ausführung von Binärdateien außerhalb von geschützten Systempfaden blockiert.
+3. **Erkennung von Named Pipe Impersonation:** Überwachung von System-Audits auf privilegierte Token-Manipulationen. Sysmon sollte so konfiguriert werden, dass die Erstellung von Named Pipes (Event ID 17 und 18) lückenlos geloggt und eskaliert wird.
 
 
 ### 3. Lateral Movement
