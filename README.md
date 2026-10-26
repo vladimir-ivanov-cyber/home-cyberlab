@@ -173,12 +173,13 @@ A. Blue Team Ausführung (Malware-Erkennung, Log-Analyse und Containment)
 
 * **Ziel:** Identifikation von Schadsoftware auf dem Host `windows-server` (`192.168.100.20`), Weiterleitung der Sicherheitsereignisse an das SIEM und Isolation des gefährdeten Systems.
 * **Tools:** Windows Defender Antivirus, Wazuh Agent / Manager (192.168.100.30), Windows Advanced Firewall.
-* **Ablauf:**
-    i. **Echtzeitschutz-Aktivierung und Threat-Triggering:** Durch das Einschalten des Echtzeitschutzes von Windows Defender wurde die verbliebene Schadsoftware (`backdoor.exe`) auf dem Desktop sofort erkannt, blockiert und automatisch unter Quarantäne gestellt.
+* **Ablauf und Analyse:**
+    - [x] **Echtzeitschutz-Aktivierung und Threat-Triggering:** Durch das Einschalten des Echtzeitschutzes von Windows Defender wurde die verbliebene Schadsoftware (`backdoor.exe`) auf dem Desktop sofort erkannt, blockiert und automatisch unter Quarantäne gestellt.
     
     ![Windows Defender blocking the execution of the malicious file](defender-eicar-block.png)
+    *Abbildung 4.1: Automatische Löschung und Blockierung der Schadsoftware durch Windows Defender.*
     
-    ii. **Baseline-Erweiterung und EDR-Integration:** Da Windows Defender Ereignisse im spezialisierten Kanal `Microsoft-Windows-Windows Defender/Operational` speichert, wurde die Konfiguration des Wazuh-Agents (`ossec.conf`) manuell erweitert, um diese Telemetrie an den zentralen Manager zu senden:
+    - [x] **Baseline-Erweiterung und EDR-Integration:** Da Windows Defender Ereignisse im spezialisierten Kanal `Microsoft-Windows-Windows Defender/Operational` speichert, wurde die Konfiguration des Wazuh-Agents (`ossec.conf`) manuell erweitert, um diese Telemetrie an den zentralen Manager zu senden:
     
     ```xml
     <localfile>
@@ -187,15 +188,16 @@ A. Blue Team Ausführung (Malware-Erkennung, Log-Analyse und Containment)
     </localfile>
     ```
     
-    iii. **SIEM-Analyse (Investigate the Alert):** Über das Discover-Panel des Wazuh-Dashboards wurde gezielt nach der **Event-ID 1116** (Threat Detected) gefiltert. Das SIEM korrelierte den Vorfall erfolgreich mit der **Rule-ID 62123** (Level 12 - Severe) und lieferte kritische Details:
-    * **Bedrohungsname:** Trojan:Win32/Zusy.NCD!MTB
-    * **Betroffener Pfad:** `file:_C:\Users\Administrator\Desktop\backdoor.exe`
-    * **Host:** `DC01.cyberlab.local`
+    - [x] **SIEM-Analyse (Investigate the Alert):** Über das Discover-Panel des Wazuh-Dashboards wurde gezielt nach der **Event-ID 1116** (Threat Detected) gefiltert. Das SIEM korrelierte den Vorfall erfolgreich mit der **Rule-ID 62123** (Level 12 - Severe) und lieferte kritische Details:
+        * **Bedrohungsname:** Trojan:Win32/Zusy.NCD!MTB
+        * **Betroffener Pfad:** `file:_C:\Users\Administrator\Desktop\backdoor.exe`
+        * **Host:** `DC01.cyberlab.local`
     
     ![Wazuh Alert for Event ID 1116 showing Microsoft Defender telemetry](wazuh-defender-alert.png)
     ![Wazuh Alert for Event ID 1116 showing Microsoft Defender telemetry](wazuh-defender-alert2.png)
+    *Abbildung 4.2: Visualisierung der kritischen EDR-Alarmierung im Wazuh-Dashboard.*
     
-    iv. **Containment-Reaktion (Host Isolation):** Zur Eindämmung des Vorfalls wurde eine Netzwerkisolation des Servers via administrative PowerShell durchgeführt. Es wurden Regeln definiert, die jeglichen ein- und ausgehenden Datenverkehr (insb. zur Kali Linux Angriffsmaschine `192.168.100.50`) blockieren, während eine Ausnahme für den Wazuh-Manager (`192.168.100.30`) das Monitoring sichert:
+    - [x] **Containment-Reaktion (Host Isolation):** Zur Eindämmung des Vorfalls wurde eine Netzwerkisolation des Servers via administrative PowerShell durchgeführt. Es wurden Regeln definiert, die jeglichen ein- und ausgehenden Datenverkehr (insb. zur Kali Linux Angriffsmaschine `192.168.100.50`) blockieren, während eine Ausnahme für den Wazuh-Manager (`192.168.100.30`) das Monitoring sichert:
     
     ```powershell
     New-NetFirewallRule -DisplayName "SOC_Isolation_In" -Direction Inbound -Action Block -Profile Any
@@ -204,17 +206,23 @@ A. Blue Team Ausführung (Malware-Erkennung, Log-Analyse und Containment)
     New-NetFirewallRule -DisplayName "Allow_Wazuh_Out" -Direction Outbound -Action Allow -RemoteAddress 192.168.100.30 -Profile Any
     ```
     
-    ![Inbound Firewall rules creation for host isolation](firewall-isolation-inbound.png)    
+    ![Inbound Firewall rules creation for host isolation](firewall-isolation-inbound.png)
+    *Abbildung 4.3: Implementierung der eingehenden Sperren zur Isolation.*
+    
     ![Outbound Firewall rules and Wazuh Manager exceptions](firewall-isolation-outbound.png)
+    *Abbildung 4.4: Konfiguration der ausgehenden Sperren mit SIEM-Ausnahme.*
 
+* **Fazit und Gegenmaßnahmen (Conclusion & Mitigation):**
+    Die erfolgreiche Detektion der verbliebenen Artefakte zeigt die Notwendigkeit einer zentralen Log-Korrelation (SIEM). Während der lokale Virenscanner die Ausführung verhinderte, ermöglichte erst die Erweiterung der EDR-Baseline in Wazuh die vollständige Sichtbarkeit des Vorfalls im SOC. Die anschließende Isolation über die Windows-Firewall unterband effektiv potenzielle laterale Bewegungen des Angreifers im Netzwerk, ohne den defensiven Log-Fluss zu unterbrechen.
 
-### 5. Baseline und eigene Erkennungsregeln
+## 5. Baseline und eigene Erkennungsregeln
 
-<!-- Nach Durchführung ergänzen: Zeitraum normaler Aktivität, Vergleich mit Testaktivität, Regel, Prüfung auf Fehlalarme, Ergebnisse und Belege. -->
+*(Inhalt folgt im nächsten Lab)*
 
-### 6. Incident Response
+## 6. Incident Response
 
-<!-- Nach Durchführung ergänzen: Auslöser, Zeitlinie, Eindämmung, Untersuchung, Bereinigung, Wiederherstellung und Nachprüfung. -->
+*(Inhalt folgt im nächsten Lab)*
+
 
 ## Fazit
 
