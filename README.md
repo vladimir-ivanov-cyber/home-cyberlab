@@ -176,7 +176,7 @@ A. Blue Team Ausführung (Malware-Erkennung, Log-Analyse und Containment)
 * **Ablauf:**
     i. **Echtzeitschutz-Aktivierung und Threat-Triggering:** Durch das Einschalten des Echtzeitschutzes von Windows Defender wurde die verbliebene Schadsoftware (`backdoor.exe`) auf dem Desktop sofort erkannt, blockiert und automatisch unter Quarantäne gestellt.
     
-    ![Windows Defender blocking the execution of the malicious file](defender-eicar-block.png
+    ![Windows Defender blocking the execution of the malicious file](defender-eicar-block.png)
     
     ii. **Baseline-Erweiterung und EDR-Integration:** Da Windows Defender Ereignisse im spezialisierten Kanal `Microsoft-Windows-Windows Defender/Operational` speichert, wurde die Konfiguration des Wazuh-Agents (`ossec.conf`) manuell erweitert, um diese Telemetrie an den zentralen Manager zu senden:
     
