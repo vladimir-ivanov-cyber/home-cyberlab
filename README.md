@@ -215,15 +215,3 @@ A. Blue Team Ausführung (Malware-Erkennung, Log-Analyse und Containment)
 * **Fazit und Gegenmaßnahmen (Conclusion & Mitigation):**
     Die erfolgreiche Detektion der verbliebenen Artefakte zeigt die Notwendigkeit einer zentralen Log-Korrelation (SIEM). Während der lokale Virenscanner die Ausführung verhinderte, ermöglichte erst die Erweiterung der EDR-Baseline in Wazuh die vollständige Sichtbarkeit des Vorfalls im SOC. Die anschließende Isolation über die Windows-Firewall unterband effektiv potenzielle laterale Bewegungen (*Lateral Movement*) в мрежата, ohne den defensiven Log-Fluss zu unterbrechen.
 
-## 5. Baseline und eigene Erkennungsregeln
-
-*(Inhalt folgt im nächsten Lab)*
-
-## 6. Incident Response
-
-*(Inhalt folgt im nächsten Lab)*
-
-
-## Fazit
-
-<!-- Ergänzen: wichtigste Ergebnisse, Grenzen der Erkennung, gewonnene Erkenntnisse und daraus abgeleitete Verbesserungen. -->
