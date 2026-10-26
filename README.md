@@ -167,7 +167,7 @@ Die Tiefenanalyse des Vorfalls in der SIEM-Umgebung lieferte wichtige forensisch
 
 
 
-## 4. Malware Detection und Incident Response
+## 4. Malware Detection
 
 A. Blue Team Ausführung (Malware-Erkennung, Log-Analyse und Containment)
 
