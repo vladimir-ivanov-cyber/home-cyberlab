@@ -106,43 +106,57 @@ Die erfolgreiche Durchführung und Analyse dieser Angriffssimulation liefert wic
 ### 2. Exploitation und Detection
 
 #### A. Red Team Ausführung (Aufklärung, Angriff und Privilegieneskalation)
+
 * **Ziel:** Identifikation offener Dienste auf dem Windows Server, erfolgreiche Ausnutzung einer Schwachstelle zur Etablierung einer Reverse-Shell und anschließende vollständige Übernahme des Systems.
 * **Tools:** NMAP & Metasploit Framework (Kali Linux – `192.168.100.50`).
 * **Ablauf:**
-  1. **Reconnaissance:** Ein aggressiver Portscan mit NMAP wurde durchgeführt, um aktive Dienste zu identifizieren (`sudo nmap -sV -sC -O -p 135,139,445,3389 192.168.100.20 -v`). Der SMB-Dienst (Port 445) wurde als aktiv bestätigt.
-  2. **Exploitation:** Da es sich um ein gehärtetes Windows Server 2025 System handelt, wurde ein maßgeschneiderter Payload mit `msfvenom` generiert (`windows/x64/meterpreter/reverse_tcp`) und auf dem Host ausgeführt, um eine interaktive Command-and-Control (C2) Verbindung zu simulieren.
-  3. **Privilege Escalation:** Nach dem Öffnen der Meterpreter-Sitzung auf Port `4444` wurde die Post-Exploitation-Technik `getsystem` ausgeführt. Das System wurde erfolgreich über die Technik **Named Pipe Impersonation (MITRE ATT&CK T1134.001)** kompromittiert, wodurch die höchsten Systemrechte (`NT AUTHORITY\SYSTEM`) erlangt wurden.
+    * **Reconnaissance:** Ein aggressiver Portscan mit NMAP wurde durchgeführt, um active Dienste zu identifizieren (`sudo nmap -sV -sC -O -p 135,139,445,3389 192.168.100.20 -v`). Der SMB-Dienst (Port 445) wurde als aktiv bestätigt.
+    
+    ![NMAP Scan Output](kali-nmap.png)
+    *Abbildung 2.1: Ergebnisse des aggressiven NMAP-Scans auf dem Windows Server zur Identifikation offener Ports.*
+    
+    * **Exploitation:** Da es sich um ein gehärtetes Windows Server 2025 System handelt, wurde ein maßgeschneiderter Payload mit `msfvenom` generiert (`windows/x64/meterpreter/reverse_tcp`) und auf dem Host ausgeführt, um eine interaktive Command-and-Control (C2) Verbindung zu simulieren.
+    
+    ![Metasploit Exploit Execution](kali-meterpreter.png)
+    *Abbildung 2.2: Konfiguration des Multi-Handlers im Metasploit Framework zur Annahme der C2-Verbindung.*
+    
+* **Ergebnis:** Nach dem Öffnen der Meterpreter-Sitzung auf Port 4444 wurde die Post-Exploitation-Technik `getsystem` ausgeführt. Das System wurde erfolgreich über die Technik Named Pipe Impersonation (MITRE ATT&CK T1134.001) kompromittiert, wodurch die höchsten Systemrechte (`NT AUTHORITY\SYSTEM`) erlangt wurden (siehe **Abbildung 2.3**).
 
-![NMAP Scan Results](kali-nmap.png)
-![Meterpreter Access and Privilege Escalation](kali-meterpreter.png)
+    ![Meterpreter Privilege Escalation Success](kali-meterpreter.png)
+    *Abbildung 2.3: Interaktive Meterpreter-Sitzung mit erfolgreicher Privilegieneskalation zu SYSTEM-Rechten.*
 
 #### B. Blue Team Analyse (SIEM-Untersuchung & Patterns)
-* **Plattform:** Security Onion (Zentrales SIEM – `192.168.100.10`) & Suricata IDS Engine.
-* **Untersuchungsergebnisse (Hunt-Konsole):**
-  Gemäß den Anforderungen der Analyse wurden die genauen mрежови мodelle (Network Patterns) im SIEM isoliert. Folgende Antworten wurden forensisch dokumentiert:
-  * **What IPs:** Die Verbindung wurde eindeutig zwischen der Angreifer-IP `192.168.100.50` (Kali Linux) und der Opfer-IP `192.168.100.20` (Windows Server) korreliert.
-  * **What Ports:** Der Datenstrom etablierte sich über den verdächtigen Port `4444` (Source Port des C2-Handlers) zu einem dynamischen Destination Port (`52890`) auf dem Windows-Host.
-  * **What Patterns:** Die IDS-Engine (Suricata) schlug sofort mit kritischen Alarmen an. Es wurden Signaturen detektiert, die spezifisch für Schadsoftware-Verhalten sind:
-    1. `ET MALWARE Possible Metasploit Payload Common Construct Bind_API (from server)` (Klassifiziert als **Critical / High Severity**).
-    2. `ET HUNTING PE EXE Download over raw TCP` (Erkennung des binären Dateitransfers über das Netzwerk).
 
-![Security Onion Hunt Metasploit Alerts](so-metasploit-overview.png)
+* **Plattform:** Security Onion (Zentrales SIEM – `192.168.100.10`) & Suricata IDS Engine.
+* **Untersuchungsergebnisse (Hunt-Konsole):** Gemäß den Anforderungen der Analyse wurden die genauen Netzwerkmuster (Network Patterns) im SIEM isoliert. Folgende Antworten wurden forensisch dokumentiert:
+    * **What IPs:** Die Verbindung wurde eindeutig zwischen der Angreifer-IP `192.168.100.50` (Kali Linux) und der Opfer-IP `192.168.100.20` (Windows Server) korreliert.
+    * **What Ports:** Der Datenstrom etablierte sich über den verdächtigen Port 4444 (Source Port des C2-Handlers) zu einem dynamischen Destination Port (`52890`) auf dem Windows-Host.
+    * **What Patterns:** Die IDS-Engine (Suricata) schlug sofort mit kritischen Alarmen an. Es wurden Signaturen detektiert, die spezifisch für Schadsoftware-Verhalten sind:
+        * a. `ET MALWARE Possible Metasploit Payload Common Construct Bind_API (from server)` (Klassifiziert als Critical / High Severity).
+        * b. `ET HUNTING PE EXE Download over raw TCP` (Erkennung des binären Dateitransfers über das Netzwerk).
+
+    ![Security Onion Hunt Dashboard for Metasploit Traffic](so-metasploit-overview.png)
+    *Abbildung 2.4: Korrelierte Alarmierungsübersicht des böswilligen C2-Verkehrs in der Security Onion Hunt-Konsole.*
 
 #### C. Untersuchung der erweiterten JSON-Artefakte & EDR-Blindspot
+
 Die Tiefenanalyse des Vorfalls in der SIEM-Umgebung lieferte wichtige forensische Erkenntnisse über das Verhalten von Endpoint-Detection-Systemen bei aggressiven Angriffen:
 
 * **Endpoint Perspective (Wazuh EDR):** Während der Privilegieneskalation mittels *Named Pipe Impersonation* über das Metasploit-Framework stürzte der Wazuh-Agent auf dem Windows Server ab (Status: *Disconnected*). Dies simuliert ein realistisches Szenario, bei dem hochentwickelte Schadsoftware oder Kernel-Exploits EDR-Systeme gezielt umgehen oder deren Log-Übertragung blockieren.
-* **SIEM-Kompensation (Suricata/Zeek):** Da der Host-Agent stumm war, übernahm die Netzwerkinfrastruktur von Security Onion die lückenlose Erkennung. Folgende tiefe JSON-Felder wurden in den `suricata.alert`-Metadaten analysiert:
-  * **`rule.name`:** `ET MALWARE Possible Metasploit Payload Common Construct Bind_API (from server)` (Eindeutige Identifizierung des C2-Frameworks).
-  * **`rule.metadata.tag`:** `Metasploit` (Direkte Signierung des Angriffs-Traffics).
-  * **`event.severity_label`:** `Critical` (Automatische Einstufung der Bedrohung auf höchster Ebene).
+* **SIEM-Kompensation (Suricata/Zeek):** Da der Host-Agent stumm war, übernahm die Netzwerkinfrastruktur von Security Onion die lückenlose Erkennung. Folgende tiefe JSON-Felder wurden in den Suricata-Alert-Metadaten analysiert (siehe **Abbildung 2.5**):
+    * **rule.name:** `ET MALWARE Possible Metasploit Payload Common Construct Bind_API (from server)` (Eindeutige Identifizierung des C2-Frameworks).
+    * **rule.metadata.tag:** `Metasploit` (Direkte Signierung des Angriffs-Traffics).
+    * **event.severity_label:** `Critical` (Automatische Einstufung der Bedrohung auf höchster Ebene).
 
-![Suricata Deep JSON Forensic Details](o-json-detail.png)
+    ![Expanded JSON alert structure in SIEM](o-json-detail.png)
+    *Abbildung 2.5: Forensische JSON-Struktur des Suricata-Netzwerk-Alerts zur Verifizierung der Metasploit-Signatur.*
 
 #### D. Fazit und Gegenmaßnahmen (Conclusion & Mitigation)
-1. **Network Egress Filtering:** Die Schadsoftware konnte nur deshalb eine Reverse-Shell aufbauen, weil ausgehender Datenverkehr auf Port `4444` erlaubt war. Firewalls müssen so konfiguriert werden, dass unübliche ausgehende Ports strikt blockiert werden.
-2. **Einführung von AppLocker / WDAC:** Unsignierte Binärdateien wie `backdoor.exe` dürfen in einer Enterprise-Infrastruktur nicht ausgeführt werden. Richtlinien zur Anwendungssteuerung hätten den Angriff im Keim erstickt.
-3. **Defense-in-Depth Notwendigkeit:** Dieses Szenario beweist, dass man sich niemals nur auf ein EDR-System verlassen darf. Fällt der Host-Schutz aus (Blind Spot), bleibt das Netzwerk-SIEM (Security Onion) die wichtigste Verteidigungslinie, um Command-and-Control-Verkehr (C2) zu erkennen.
+
+* **Gegenmaßnahmen zur Absicherung:**
+    * **Network Egress Filtering:** Die Schadsoftware konnte nur deshalb eine Reverse-Shell aufbauen, weil ausgehender Datenverkehr über Port 4444 erlaubt war. Firewalls müssen so konfiguriert werden, dass unübliche ausgehende Ports strikt blockiert werden.
+    * **Einführung von AppLocker / WDAC:** Unsignierte Binärdateien wie `backdoor.exe` dürfen in einer Enterprise-Infrastruktur nicht ausgeführt werden. Richtlinien zur Anwendungssteuerung hätten den Angriff im Keim erstickt.
+    * **Defense-in-Depth Notwendigkeit:** Dieses Szenario beweist, dass man sich niemals nur auf ein EDR-System verlassen darf. Fällt der Host-Schutz aus (Blind Spot), bleibt das Netzwerk-SIEM (Security Onion) die wichtigste Verteidigungslinie, um Command and Control (C2) zu erkennen.
 
 
 
