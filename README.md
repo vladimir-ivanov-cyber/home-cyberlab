@@ -37,62 +37,70 @@ Ein Netzwerkereignis bestätigt zunächst beobachtete Kommunikation. Eine Regelm
 ## Angriffssimulationen
 
 
-### 1. Credential Harvesting mit Responder
+### 1. Credential Harvesting
 
 #### A. Red Team Ausführung (Angriff)
+
 * **Ziel:** Abfangen von NetNTLMv2-Hashes im lokalen Netzwerk mittels LLMNR/NBT-NS Spoofing.
 * **Tool:** Responder (ausgeführt auf Kali Linux – `192.168.100.50`).
-* **Ablauf:** 
-  1. Die lokale Responder-Datenbank (`Responder.db`) und alte Logdateien wurden vollständig bereinigt, um einen Live-Angriff zu simulieren.
-  2. Responder wurde im Listening-Modus gestartet, um auf Broadcast-Anfragen im Netzwerk zu warten (`sudo responder -I eth0 -w`).
-  3. Auf dem Windows Server (`192.168.100.20`) wurde eine fehlerhafte SMB-Netzwerkfreigabe-Anfrage an einen nicht existierenden Server eingegeben (`\\nov-test-server\portfolio`).
-* **Ergebnis:** Responder hat die LLMNR-Anfrage erfolgreich vergiftet (Poisoning), dem Opfer vorgetäuscht, der gesuchte Server zu sein, und den vollständigen NetNTLMv2-Authentifizierungshash für den Benutzer `CYBERLAB\Administrator` im Terminal abgefangen.
-
-![Kali Linux Hash](kali-hash.png)
-![Windows Server SMB Error](windows-error.png)
-
+* **Ablauf:**
+    * **Vorbereitung:** Die lokale Responder-Datenbank (`Responder.db`) und alte Logdateien wurden vollständig bereinigt, um einen sauberen Live-Angriff zu simulieren. Anschließend wurde Responder im Listening-Modus gestartet, um auf Broadcast-Anfragen im Netzwerk zu warten (`sudo responder -I eth0 -w`).
+    
+    ![Responder LLMNR Poisoning Session Start](kali-hash.png)
+    *Abbildung 1.1: Start des Responder-Dienstes im Listening-Modus auf der Kali-Linux-Zuweisung.*
+    
+    * **Auslösen der Fehlkonfiguration:** Auf dem Windows Server (`192.168.100.20`) wurde absichtlich eine fehlerhafte SMB-Netzwerkfreigabe-Anfrage an einen nicht existierenden Server eingegeben (`\\nov-test-server\portfolio`).
+    
+    ![Windows Server triggering faulty SMB request](kali-empire-simulation.png)
+    *Abbildung 1.2: Generierung der fehlerhaften SMB-Anfrage auf dem Windows Server führt zu einem Namensauflösungsfehler.*
+    
+* **Ergebnis:** Responder hat die LLMNR-Anfrage erfolgreich vergiftet (Poisoning), dem Opfer vorgetäuscht, der gesuchte Server zu sein, und den vollständigen NetNTLMv2-Authentifizierungshash für den Benutzer `CYBERLAB\Administrator` im Terminal abgefangen (siehe **Abbildung 1.1**).
 
 #### B. Blue Team Analyse (Erkennung im SIEM)
-* **Plattform:** Security Onion (Zentrales SIEM – `192.168.100.10`) integriert mit Wazuh EDR & Sysmon logs.
-* **Netzwerk-Erkennung (Zeek):** In der Security Onion *Hunt*-Konsole wurden die Metadaten-Events von `zeek.dns` identifiziert. Diese dokumentieren den genauen Zeitpunkt, zu dem der Windows Server die Broadcast-Anfrage für `nov-test-server` in das Netzwerk geschickt hat.
-* **Endpoint-Erkennung (Sysmon/Wazuh):** Die Analyse des Windows Event Forwarding über das Sysmon-Modul lieferte den entscheidenden Beweis (Smoking Gun) direkt in der SIEM-Umgebung (`winlog.winlog`).
 
-![Security Onion Hunt Overview](so-hunt-overview.png)
-![Security Onion Events List](so-hunt-events-list.png)
-
+* **Plattform:** Security Onion (Zentrales SIEM – `192.168.100.10`) integriert mit Wazuh EDR & Sysmon-Logs.
+* **Netzwerk-Erkennung (Zeek):** In der Security Onion Hunt-Konsole wurden die Metadaten-Events von `zeek.dns` identifiziert. Diese dokumentieren den genauen Zeitpunkt, zu dem der Windows Server die Broadcast-Anfrage für `nov-test-server` in das Netzwerk geschickt hat.
+    
+    ![Security Onion Hunt Dashboard showing Zeek events](so-hunt-overview.png)
+    *Abbildung 1.3: Übersicht der korrelierten Netzwerk- und Host-Ereignisse in der Security Onion Hunt-Konsole.*
+    
+* **Endpoint-Erkennung (Sysmon/Wazuh):** Die detaillierte Analyse des Windows Event Forwarding über das Sysmon-Modul lieferte den entscheidenden Beweis (*Smoking Gun*) direkt in der SIEM-Umgebung innerhalb des Event-Datasets `winlog.winlog`.
 
 #### C. Untersuchung der Artefakte (Investigation Findings / Sysmon)
-Bei der Detailanalyse des expandierten Sysmon-Logs wurden folgende kritische Indikatoren dokumentiert:
 
-* **`winlog.channel`:** `Microsoft-Windows-Sysmon/Operational` (Bestätigt die Tiefenüberwachung des Endpunkts).
-* **`winlog.event_data.Image`:** `C:\WINDOWS\system32\svchost.exe` (Der legitime Windows-Prozess, welcher die DNS-Anfrage ausführte).
-* **`winlog.event_data.QueryName`:** `nov-test-server` (Verbindet den Host-Log direkt mit dem原始 Angriff).
-* **`winlog.event_data.QueryResults`:** `192.168.100.50` (Das finale Untersuchungsergebnis: Das Feld zeigt explizit, dass die Namensauflösung des Windows-Servers auf die IP-Adresse des Angreifers manipuliert wurde. Dies beweist den Erfolg des LLMNR-Poisoning-Angriffs).
-
-![Sysmon Details](sysmon-detail.png)
+* **Analyse der Endpunkt-Ergebnisse:** Bei der Detailanalyse des expandierten Sysmon-Logs in Security Onion wurden folgende kritische Indikatoren dokumentiert (siehe **Abbildung 1.4**):
+    * **winlog.channel:** `Microsoft-Windows-Sysmon/Operational` (Bestätigt die Tiefenüberwachung des Endpunkts).
+    * **winlog.event_data.Image:** `C:\WINDOWS\system32\svchost.exe` (Der legitime Windows-Prozess, welcher die DNS-Anfrage ausführte).
+    * **winlog.event_data.QueryName:** `nov-test-server` (Verbindet den Host-Log direkt mit dem Angriff).
+    * **winlog.event_data.QueryResults:** `192.168.100.50` (Das finale Untersuchungsergebnis: Dieses Feld zeigt explizit, dass die Namensauflösung des Windows-Servers auf die IP-Adresse des Angreifers manipuliert wurde. Dies beweist den Erfolg des LLMNR-Poisoning-Angriffs).
+    
+    ![Sysmon operational log details in SIEM](sysmon-detail.png)
+    *Abbildung 1.4: Forensische Details des Sysmon-Ereignisses zur Identifikation der manipulierten Namensauflösung.*
 
 #### D. Untersuchung der Artefakte (Investigation Findings / Wazuh EDR)
-Die vertiefte Untersuchung der Event-Details direkt in der Wazuh EDR-Konsole lieferte den endgültigen hostbasierten Beweis:
 
-* **`win.system.channel`:** `Microsoft-Windows-NTLM/Operational` (Überwachung aktiver NTLM-Authentifizierungsversuche).
-* **`win.eventdata.clientUserName`:** `Administrator` (Der kompromittierte Benutzerkontext).
-* **`win.eventdata.targetName`:** `cifs/nesustestvuvasht-server` (Bestätigt den genauen Ziel-String des manipulierten Netzwerkaufrufs).
-* **`rule.description`:** `CyberLab: NTLM outbound authentication audit detected (Event 8001)` (Das EDR-System hat erfolgreich registriert, dass der Windows-Host versucht hat, Authentifizierungsdaten unverschlüsselt nach außen zu senden, ausgelöst durch den Responder-Angriff).
-
-![Wazuh EDR Alert](wazuh-edr-alert.png)
-![Wazuh Details Top](wazuh-details-top.png)
-![Wazuh Details Bottom](wazuh-details-bottom.png)
+* **Analyse der hostbasierten Beweise:** Die vertiefte Untersuchung der Event-Details direkt in der Wazuh EDR-Konsole lieferte den endgültigen Nachweis für unverschlüsselte Authentifizierungsübertragungen (siehe **Abbildung 1.5** und **Abbildung 1.6**):
+    * **win.system.channel:** `Microsoft-Windows-NTLM/Operational` (Überwachung aktiver NTLM-Authentifizierungsversuche).
+    * **win.eventdata.clientUserName:** `Administrator` (Der kompromittierte Kontext).
+    * **win.eventdata.targetName:** `cifs/nesustestvuvasht-server` (Bestätigt den genauen Ziel-String des manipulierten Netzwerkaufrufs).
+    * **rule.description:** `CyberLab: NTLM outbound authentication audit detected (Event 8001)` (Das EDR-System hat erfolgreich registriert, dass der Windows-Host versucht hat, Authentifizierungsdaten unverschlüsselt nach außen zu senden, ausgelöst durch den Responder-Angriff).
+    
+    ![Wazuh EDR overview of NTLM audit logs](wazuh-details-top.png)
+    *Abbildung 1.5: Auswertung der EDR-Alarmierungen (Rule Level 8) im zentralen Wazuh-Dashboard.*
+    
+    ![Wazuh JSON document details for NTLM block event](wazuh-details-bottom.png)
+    *Abbildung 1.6: Expandierte JSON-Struktur des NTLM-Audits zur Validierung des kompromittierten Benutzerkontos.*
 
 #### E. Fazit und Gegenmaßnahmen (Conclusion & Mitigation)
+
 Die erfolgreiche Durchführung und Analyse dieser Angriffssimulation liefert wichtige Erkenntnisse über die Risiken von Legacy-Protokollen in Windows-Umgebungen und die Effizienz einer kombinierten SIEM/EDR-Überwachung.
 
-**Gegenmaßnahmen zur Absicherung der Infrastruktur:**
-1. **Deaktivierung von LLMNR & NBT-NS:** Die primäre Ursache für diesen Angriff ist das automatische Zurückfallen von Windows auf unsichere Broadcast-Protokolle. Diese müssen zwingend über die Gruppenrichtlinien (GPO) im gesamten Active Directory deaktiviert werden (*"Turn off Multicast Name Resolution"*).
-2. **Einführung von SMB Signing:** Um Relay-Angriffe mit den erbeuteten Hashes zu verhindern, sollte SMB Signing für alle Server und Clients im Netzwerk verpflichtend aktiviert werden.
-3. **Einsatz von Windows Defender Credential Guard:** Aktivierung von Credential Guard, um das Auslesen und Missbrauchen von Authentifizierungsdaten aus dem LSASS-Prozess durch Virtualisierungsbasierte Sicherheit (VBS) effektiv zu blockieren.
+* **Gegenmaßnahmen zur Absicherung:**
+    1. **Deaktivierung von LLMNR & NBT-NS:** Die primäre Ursache für diesen Angriff ist das automatische Zurückfallen von Windows auf unsichere Broadcast-Protokolle. Diese müssen zwingend über die Gruppenrichtlinien (GPO) im gesamten Active Directory deaktiviert werden (*"Turn off Multicast Name Resolution"*).
+    2. **Einführung von SMB Signing:** Um Relay-Angriffe mit den erbeuteten Hashes zu verhindern, sollte SMB Signing für alle Server und Clients im Netzwerk verpflichtetend aktiviert werden.
+    3. **Einsatz von Windows Defender Credential Guard:** Aktivierung von Credential Guard, um das Auslesen und Missbrauchen von Authentifizierungsdaten aus dem LSASS-Prozess durch Virtualisierungsbasierte Sicherheit (VBS) effektiv zu blockieren.
 
-**Analytisches Fazit:**
-Durch die nahtlose Integration von **Security Onion** (Netzwerk-Sichtbarkeit über Zeek) und **Wazuh EDR** (Host-Sichtbarkeit über NTLM/Operational Auditing) konnte der Vorfall lückenlos korreliert werden. Während die Netzwerksensoren den Moment des Spoofings dokumentierten, lieferte die EDR-Plattform den präzisen forensischen Nachweis (Event ID 8001), welcher Prozess betroffen war und dass der Host manipuliert wurde. Dies beweist die kritische Notwendigkeit eines ganzheitlichen "Defense-in-Depth"-Ansatzes in modernen Security Operations Centers (SOC).
+* **Analytisches Fazit:** Durch die nahtlose Integration von Security Onion (Netzwerk-Sichtbarkeit über Zeek) und Wazuh EDR (Host-Sichtbarkeit über NTLM/Operational Auditing) konnte der Vorfall lückenlos korreliert werden. Während die Netzwerksensoren den Moment des Spoofings dokumentierten, lieferte die EDR-Plattform den präzisen forensischen Nachweis, welcher Prozess betroffen war und dass der Host manipuliert wurde. Dies beweist die kritische Notwendigkeit eines ganzheitlichen "Defense-in-Depth"-Ansatzes in modernen Security Operations Centers (SOC).
 
 
 ### 2. Exploitation und Detection
