@@ -237,3 +237,80 @@ A. Blue Team Ausführung (Malware-Erkennung, Log-Analyse und Containment)
 * **Fazit und Gegenmaßnahmen (Conclusion & Mitigation):**
     Die erfolgreiche Detektion der verbliebenen Artefakte zeigt die Notwendigkeit einer zentralen Log-Korrelation (SIEM). Während der lokale Virenscanner die Ausführung verhinderte, ermöglichte erst die Erweiterung der EDR-Baseline in Wazuh die vollständige Sichtbarkeit des Vorfalls im SOC. Die anschließende Isolation über die Windows-Firewall unterband effektiv potenzielle laterale Bewegungen (*Lateral Movement*) в мрежата, ohne den defensiven Log-Fluss zu unterbrechen.
 
+
+
+## 5. Deep Dive Log-Analyse & Detection Engineering (PowerShell Attack)
+
+A. Blue Team Ausführung (Kriminaltechnische Bedrohungsjagd und Signaturentwicklung)
+
+* **Ziel:** Forensische Isolation von hochentwickelten, dateilosen PowerShell-Angriffsvektoren (Fileless Attacks) aus einem massiven Systemrauschens (Baseline). Validierung des herstellerübergreifenden Logflusses (Elastic Common Schema) und Erstellung maßgeschneiderter EDR-Erkennungsregeln zur Schließung von Transparenzlücken im SOC-Betrieb.
+* **Tools:** Security Onion Hunt Console (Elastic Fleet Engine), Ubuntu Wazuh Manager (192.168.100.30), Microsoft Sysmon Core, Windows Advanced Audit Policy, Windows Server (192.168.100.20).
+
+### 1. Datenerhebung und Baseline-Analyse (Normales Systemverhalten)
+Vor der Initiierung böswilliger Aktivitäten wurde eine 30-minütige Verhaltens-Baseline des Windows-Servers erhoben, um legitime Hintergrundprozesse zu kartografieren. Der Logstrom im SIEM wurde hierbei primär von automatisierten Prozessen der Windows-Defender-Plattform dominiert.
+
+![Security Onion Baseline-Übersicht](so-baseline-overview..png)
+*Abbildung 5.1: Analyse des normalen Systemrauschens (Baseline) in der Security Onion Hunt-Konsole vor dem Angriff.*
+
+### 2. Strukturierung des Dashboards und Spaltenkonfiguration
+Um die unstrukturierten JSON-Rohdaten lesbar zu machen, wurden spezifische Filterspalten für Event ID, newProcessName und commandLine manuell hinzugefügt. Dies ermöglichte die sofortige Isolation von legitimen Windows-Hintergrundaktivitäten aus dem kontinuierlichen Telemetriestrom.
+
+![Wazuh strukturierte Spaltenansicht](wazuh-baseline-structured-columns.png)
+*Abbildung 5.2: Konfiguration des Wazuh Discover Dashboards mit strukturierten Tabellenspalten zur präzisen Log-Analyse (288 Hits).*
+
+### 3. Forensische Prozessketten-Analyse (Deep Dive)
+Bei der tiefergehenden Überprüfung von Abbildung 5.2 wurde isoliert, dass das legitime Programm MpCmdRun.exe regelmäßig mit dem Argument -SignaturesUpdate aufgerufen wird. Da dieser Prozess zeitsynchron eine Instanz der conhost.exe im flüchtigen Speicher erzeugt, wurde diese Prozess-Mutter-Kind-Beziehung als absolut vertrauenswürdig (Benign True Positive) eingestuft.
+
+![Erweiterte Ansicht der Rohdaten](so-baseline-json-details.png)
+*Abbildung 5.3: Tiefenanalyse der Event-Metadaten im JSON-Format zur Verifizierung legitimer Microsoft-Signaturaktualisierungen.*
+
+### 4. Ausführung der Angriffssimulation (Malicious Act)
+Auf dem Windows-Server wurde gezielt ein verschleierter, dateiloser Angriffsaufruf (MITRE ATT&CK T1059.001) über eine administrative PowerShell-Instanz abgesetzt. Ziel der Taktik ist das interaktive Nachladen von externem Schadcode direkt in den flüchtigen Arbeitsspeicher des Systems.
+
+![Ausführung des PowerShell Angriffs](windows-attack-execution.png)
+*Abbildung 5.4: Administrative Ausführung des verschleierten Living-off-the-Land Angriffs auf dem Ziel-Server (192.168.100.20).*
+
+### 5. Identifikation von Telemetrie-Hürden und Ursachenanalyse
+Bei der anschließenden Jagd nach der Bedrohung (Threat Hunting) im Wazuh-Dashboard meldete das System jedoch unerwartet No Results. Ein gezielter Audit ergab zwei fundamentale Erkenntnisse: Erstens war das erweiterte Prozess-Tracking in den lokalen Windows-Sicherheitsrichtlinien (secpol.msc) standardmäßig deaktiviert. Zweitens filtert das Wazuh-Discover-Panel primär vordefinierte Sicherheitsalarme, während die unstrukturierten, rohen Prozessdaten über den modernen Elastic Agent direkt nach Security Onion weitergeleitet werden.
+
+![Wazuh Blindspot - No Results](wazuh-blindspot-no-results.png)
+*Abbildung 5.5: Dokumentation des Transparenz-Konflikts im Wazuh Discover Dashboard aufgrund fehlender Windows-Audit-Richtlinien.*
+
+### 6. Behebung des Sichtbarkeitsdefizits und Isolierung der IOCs
+Nach der Aktivierung von Audit process tracking in den Windows-Richtlinien wurde die Bedrohungsjagd erfolgreich in das Security Onion Hunt Dashboard verlagert. Unter Verwendung des präzisen Elastic Common Schema Filters process.name: "powershell.exe" konnte die Nadel im Heuhaufen aus über 1.100 Events exakt isoliert werden.
+
+![Erfolgreiches Threat Hunting](so-hunt-powershell-artifact.png)
+*Abbildung 5.6: Forensische Detektion des verschleierten PowerShell-Prozesses und Extraktion der Argumente im Feld process.command_line.*
+
+**Kritische Indikatoren für eine Kompromittierung (IOCs) aus Abbildung 5.6:**
+* process.code_signature.trusted: true -> Belegt eine Living-off-the-Land-Technik (Nutzung vertrauenswürdiger Systemdateien zur Umgehung von Whitelisting-Blockaden).
+* Parameter -nop (NoProfile) und -w hidden -> Taktik zur verdeckten Ausführung ohne Aufblitzen eines Fensters auf der Opfer-Konsole.
+* Funktion DownloadString -> Erzwingt das Nachladen eines Payloads direkt in den RAM-Speicher, um dateibasierte Antivirenscanner zu umgehen.
+
+### 7. Rule Engineering auf dem dedizierten Ubuntu Wazuh Manager
+Um diese verdeckte Taktik zukünftig vollautomatisch auf EDR-Ebene zu blockieren und zu alarmieren, wurde die Konfigurationsdatei /var/ossec/etc/rules/local_rules.xml auf dem Ubuntu-Manager editiert. Es wurde eine maßgeschneiderte PCRE2-Regex-Regel innerhalb einer dedizierten Signaturgruppe implementiert:
+
+```xml
+<group name="windows_powershell_attack,">
+  <rule id="100050" level="12">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)-nop.*-w\s+hidden.*DownloadString</field>
+    <description>SOC Lab Alert: Malicious Fileless PowerShell Execution Detected (MITRE T1059.001)</description>
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+  </rule>
+</group>
+```
+
+![Implementierung der Custom Rule](o-json-detail.png)
+*Abbildung 5.7: Manuelle Konfiguration und syntaktische Validierung der Custom Rule 100050 im lokalen Regelwerk des Wazuh-Managers.*
+
+### 8. Qualitätssicherung und True-Positive-Validierung
+Nach einem kontrollierten Dienst-Neustart wurde die Schadsoftware-Kette erneut auf dem Windows Server getriggert. Die Validierung im EDR-Dashboard verlief fehlerfrei: Die Regel ID 100050 schlug sofort mit der kritischen Alarmstufe 12 (High Severity) an und lieferte die vollständige Zuordnung zur MITRE ATT&CK Matrix.
+
+![Erfolgreicher EDR Alert](wazuh-alert-level12-validated.png)
+*Abbildung 5.8: Nachweis der erfolgreichen Echtzeit-Detektion (True Positive) im Wazuh-Dashboard inklusive vollständiger Feldextraktion.*
+
+### Fazit und Gegenmaßnahmen (Conclusion & Mitigation)
+Diese Übung demonstriert eindrucksvoll die Komplexität moderner SIEM- und EDR-Architekturen. Ein erfolgreicher SOC-Analyst darf sich nicht auf Standardkonfigurationen verlassen. Durch die systematische Korrelation von Elastic-Fleet-Rohdaten in Security Onion und das gezielte Signatur-Engineering in Wazuh wurde eine lückenlose Überwachung etabliert. Die generierte Alarmstufe 12 liefert nun die kompromisslose Datenbasis für die sofortige Einleitung von Incident-Response-Maßnahmen.
