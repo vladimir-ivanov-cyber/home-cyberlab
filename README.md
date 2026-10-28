@@ -399,3 +399,19 @@ Der Angreifer versuchte eine Living-off-the-Land-Technik anzuwenden, indem er di
 ### Schlussfolgerung (Fazit zu Übung 6)
 Das sechste und finale Experiment schließt den gesamten Sicherheitslebenszyklus (Security Lifecycle) erfolgreich ab. Durch das Zusammenspiel von präziser Erkennung (Detection Engineering aus Übung 5) und sofortiger Reaktion (Containment & Remediation) wurde die Widerstandsfähigkeit der Labor-Infrastruktur bewiesen. Die sorgfältige Erstellung des Incident Reports spiegelt die standardisierten Abläufe moderner Enterprise Security Operation Center (SOC) wider und stellt eine lückenlose Dokumentation für zukünftige Sicherheitsaudits sicher.
 
+
+
+---
+
+## 7. Ressourcen-Analyse & Blue-Team-Infrastruktur-Optimierung
+
+### 1. Performance-Monitoring im SOC-Betrieb
+Während der Simulationen wurde die Hardware-Auslastung der zentralen SIEM-Instanz (Security Onion) kontinuierlich überwacht. Wie in der Live-Infrastruktur dokumentiert, stieg die Speicherauslastung auf **77,3 % von 20,5 GB zugewiesenem RAM**, während der Swap-Speicher mit **84,0 % von 8,6 GB** stark beansprucht wurde.
+
+* **Analysten-Erkenntnis:** Enterprise-SIEM-Systeme wie Security Onion, die eine Vielzahl von Docker-Microservices (Elasticsearch, Logstash, Kibana, Fleet) parallel betreiben, erfordern immense Hardwareressourcen. Im realen SOC-Betrieb führt eine Überlastung dieser Komponenten zu Log-Verzögerungen (Ingestion Latency) und potenziellen Transparenzlücken.
+
+### 2. Strategische Ausrichtung (Fokus: Blue Team Operations)
+Um die Stabilität der Erkennungs-Pipeline zu gewährleisten und Fehlalarme zu minimieren, wird die Laborumgebung auf diesem stabilen Meilenstein eingefroren. Der Fokus künftiger Analysen liegt primär auf dem Ausbau der detektierten Telemetrie-Qualität (Detection Engineering) und dem Incident Response Lifecycle, anstatt die Infrastruktur durch zusätzliche virtuelle Firewalls (wie pfSense) oder anfällige Webanwendungen weiter zu überlasten.
+
+### Gesamtfazit des Projekts
+Das gesamte Heimlabor-Projekt schließt mit einem nachweisbar erfolgreichen Detektions- und Reaktionszyklus ab. Von der ersten Datenerhebung (Baseline) über die Identifizierung der verschleierten Angreifer-Kette (Threat Hunting) bis hin zur automatisierten Alarmierung (Rule 100050) und anschließenden Host-Isolation wurde der vollständige Arbeitsalltag eines SOC-Analysten erfolgreich simuliert, verifiziert und dokumentiert.
