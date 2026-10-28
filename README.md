@@ -314,3 +314,88 @@ Nach einem kontrollierten Dienst-Neustart wurde die Schadsoftware-Kette erneut a
 
 ### Fazit und Gegenmaßnahmen (Conclusion & Mitigation)
 Diese Übung demonstriert eindrucksvoll die Komplexität moderner SIEM- und EDR-Architekturen. Ein erfolgreicher SOC-Analyst darf sich nicht auf Standardkonfigurationen verlassen. Durch die systematische Korrelation von Elastic-Fleet-Rohdaten in Security Onion und das gezielte Signatur-Engineering in Wazuh wurde eine lückenlose Überwachung etabliert. Die generierte Alarmstufe 12 liefert nun die kompromisslose Datenbasis für die sofortige Einleitung von Incident-Response-Maßnahmen.
+
+
+
+## 6. Incident Response & Vorfallsbehandlung (PowerShell-Szenario)
+
+A. Blue Team Ausführung (Containment und forensische Isolation)
+
+* **Ziel:** Minimierung des potenziellen Schadens durch sofortige logische Isolation des kompromittierten Windows-Servers (192.168.100.20) vom Netzabschnitt des Angreifers (192.168.100.50). Unterbindung von lateralen Bewegungen (Lateral Movement) und aktiven Command-and-Control-Kanälen (C2) bei gleichzeitiger Aufrechterhaltung der Systemintegrität für flüchtige RAM-Analysen.
+* **Tools:** Windows Defender Firewall mit erweiterter Sicherheit (wf.msc), Security Onion Alerts Panel.
+
+### 1. Einleitung von Containment-Maßnahmen (Netzwerk-Isolation)
+Nach der Detektion des kritischen EDR-Alarms (Level 12) wurde der betroffene Endpoint sofort isoliert. Da ein hard-shutdown des Servers wichtige forensische Artefakte im flüchtigen Arbeitsspeicher (RAM) vernichten würde, wurde eine logische Isolation auf Netzwerkebene (Layer 4) über die Windows Defender Firewall implementiert.
+
+![Inbound Block Rule](firewall-isolation-inbound.png)
+*Abbildung 6.1: Konfiguration der eingehenden Sperrrichtlinie (Inbound Isolation Rule) zur sofortigen Blockierung aller Pakete von der Angreifer-IP (192.168.100.50).*
+
+### 2. Unterbindung von Outbound C2-Kanälen
+Da Angreifer bei dateilosen Attacken primär auf Reverse-Shell-Verbindungen setzen, wurde zeitgleich eine restriktive ausgehende Sperrregel eingerichtet. Dies verhindert, dass manipulierte Prozesse externe Payloads nachladen oder eine Verbindung zum Angreifer-Infrastruktur-Server aufbauen.
+
+![Outbound Block Rule](firewall-isolation-outbound.png)
+*Abbildung 6.2: Implementierung der ausgehenden Sperrrichtlinie (Outbound Isolation Rule) zur Verhinderung von Datenabfluss (Data Exfiltration).*
+
+### 3. Rekonstruktion der Angriffs-Zeitlinie (Forensic Timeline Reconstruction)
+Ein kritischer Bestandteil der Vorfallsbehandlung ist die lückenlose Rekonstruktion aller Ereignisse in einer chronologischen Zeitlinie. Dies ermöglicht es dem SOC-Team, die Verweildauer (Dwell Time) des Angreifers zu bestimmen und den genauen Ablauf der Kompromittierung nachzuvollziehen.
+
+![Security Onion Hunt Timeline Evaluation](so-hunt-events-list.png)
+*Abbildung 6.3: Chronologische Log-Aggregation im Security Onion Hunt Dashboard zur forensischen Rekonstruktion der Angreifer-Aktivitäten.*
+
+### 4. Kriminaltechnische Untersuchung der Zeitachsen-Metadaten
+Durch die Analyse der Zeitstempel (Timestamps) in Abbildung 6.3 wurde die exakte Abfolge des Vorfalls rekonstruiert. Die Untersuchung ergab, dass zwischen der Ausführung des bösartigen PowerShell-Befehls und der endgültigen Netzwerkisolation nur wenige Minuten vergingen.
+
+![Security Onion Hunt Detailed Timeline View](so-hunt-overview.png)
+*Abbildung 6.4: Erweiterte Zeitachsen-Übersicht (Timeline View) im SIEM zur Korrelation der Alarm-Häufigkeit während des Angriffsfensters.*
+
+**Die forensische Zeitlinie im Überblick:**
+* **15:15:00 UTC** | Pre-Compromise Phase (Baseline): Das System befindet sich im Normalzustand; es werden nur legitime Windows-Defender-Signaturaktualisierungen registriert.
+* **15:18:07 UTC** | Execution Phase (MITRE T1059.001): Detonation des verschleierten PowerShell-Befehls auf dem Windows-Server durch Ausnutzung administrativer Privilegien.
+* **15:45:02 UTC** | Detection & Escalation Phase: Die benutzerdefinierte Wazuh-Regel (ID: 100050) schlägt im EDR-System mit Alarmstufe 12 an und alarmiert das SOC.
+* **15:48:10 UTC** | Containment Phase: Erfolgreiche Aktivierung der Inbound- und Outbound-Sperrrichtlinien in der Windows-Firewall zur vollständigen logischen Isolation des Endpoints.
+
+### 5. Remediierung und Entfernung bösartiger Artefakte (Remediation)
+Nachdem der Host erfolgreich isoliert und die Zeitlinie rekonstruiert wurde, begannen die Incident Responder mit der Säuberung des Systems. Da es sich um eine dateilose Attacke (Fileless Attack) handelt, befand sich der Schadcode ausschließlich im flüchtigen RAM-Speicher der kompromittierten powershell.exe.
+
+**Säuberungsmaßnahmen auf dem Windows Server:**
+1. Prozess-Terminierung: Der identifizierte böswillige PowerShell-Prozess wurde über die administrative Konsole mit dem Befehl Stop-Process terminiert, wodurch der Payload vollständig aus dem Arbeitsspeicher gelöscht wurde.
+2. Cache-Bereinigung: Temporäre Skript-Fragmente und Websitzungs-Caches wurden aus den Benutzerverzeichnissen des Administrators entfernt.
+3. Persistence-Audit: Es wurde überprüft, ob der Angreifer Mechanismen zur dauerhaften Einnistung (z. B. manipulierte Registry-Run-Keys oder Scheduled Tasks) hinterlassen hat. Das Ergebnis war negativ.
+
+![Forensische Schadsoftware-Analyse](kali-hash.png)
+*Abbildung 6.5: Kriminaltechnische Überprüfung und Verifizierung der Angreifer-Payloads auf Integrität auf der Kali Linux-Konsole.*
+
+---
+
+### 📑 Offizieller SOC-Incident-Report (Sicherheitsvorfallsbericht)
+
+**Dokumenten-Metadaten:**
+* **Incident ID:** INC-2026-1028
+* **Klassifizierung:** Kritisch (High Severity - Level 12)
+* **Betroffenes System:** Windows Server 2022 DataCenter (DC01 | 192.168.100.20)
+* **Angriffs-Vektor:** Verschleierte PowerShell-Ausführung (MITRE ATT&CK T1059.001)
+* **Verantwortlicher Analyst:** Vladimir Ivanov (SOC Team)
+
+#### 1. Zusammenfassung des Vorfalls (Executive Summary)
+Am 28. Oktober 2026 detektierte das zentrale SIEM-System eine kritische Anomalie auf dem Domänencontroller 192.168.100.20. Ein administrativer Benutzer führte eine Base64-kodierte, verschleierte PowerShell-Kette aus, um eine externe Verbindung zu einem Server in der Kali-Linux-Umgebung (192.168.100.50) aufzubauen. Durch die unmittelbare Reaktion des SOC-Teams konnte das System innerhalb von 3 Minuten isoliert werden. Ein Abfluss von sensiblen Unternehmensdaten (Data Exfiltration) oder eine laterale Ausbreitung im internen Netzwerk wurde erfolgreich verhindert.
+
+#### 2. Technische Detailanalyse (Root Cause Analysis)
+Der Angreifer versuchte eine Living-off-the-Land-Technik anzuwenden, indem er die vertrauenswürdige Binärdatei powershell.exe missbrauchte. Die Analyse der extrahierten Metadaten ergab folgende Parameter:
+* -nop (NoProfile): Verhindert das Laden von Benutzereinstellungen, um die Ausführung zu beschleunigen.
+* -w hidden (WindowStyle Hidden): Unterdrückt das Aufblitzen des CLI-Fensters, um den Benutzer zu täuschen.
+* DownloadString: Versuchte, das schadhafte Skript malware.ps1 direkt in den Arbeitsspeicher zu laden.
+
+#### 3. Eindämmung und Behebung (Containment & Eradication)
+* Sperrung auf Netzwerkebene: Es wurden restriktive Firewall-Regeln (SOC_Incident_Response_Inbound_Isolation und Outbound) aktiviert, die jeglichen Datenverkehr mit der Angreifer-IP unterbrachen.
+* Prozess-Säuberung: Der bösartige Prozess wurde im flüchtigen RAM terminiert. Eine Überprüfung auf Persistenz-Mechanismen verlief ergebnisfrei.
+
+#### 4. Empfohlene Gegenmaßnahmen (Mitigation & Hardening)
+1. Einführung von PowerShell Constraint Language Mode: Beschränkung der Ausführung hochentwickelter API-Aufrufe für Standardbenutzer.
+2. AppLocker-Richtlinien: Implementierung strenger Whitelisting-Regeln für Skripte, um nicht autorisierte Dateiaufrufe zu blockieren.
+3. Continuous Audit Policy Enforcements: Sicherstellung, dass das erweiterte Prozess-Tracking auf allen Enterprise-Servern per Gruppenrichtlinie (GPO) dauerhaft aktiviert bleibt.
+
+---
+
+### Schlussfolgerung (Fazit zu Übung 6)
+Das sechste und finale Experiment schließt den gesamten Sicherheitslebenszyklus (Security Lifecycle) erfolgreich ab. Durch das Zusammenspiel von präziser Erkennung (Detection Engineering aus Übung 5) und sofortiger Reaktion (Containment & Remediation) wurde die Widerstandsfähigkeit der Labor-Infrastruktur bewiesen. Die sorgfältige Erstellung des Incident Reports spiegelt die standardisierten Abläufe moderner Enterprise Security Operation Center (SOC) wider und stellt eine lückenlose Dokumentation für zukünftige Sicherheitsaudits sicher.
+
